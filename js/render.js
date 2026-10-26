@@ -5,7 +5,7 @@
 // profondeur, puis une couche additive pour les effets lumineux.
 // ---------------------------------------------------------------------------
 // scale = nombre de pixels physiques de l'écran par pixel du jeu
-const view = { canvas: null, ctx: null, scale: 3, userScale: 0, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sky: null };
+const view = { canvas: null, ctx: null, scale: 3, userScale: 0, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null };
 const buckets = [];
 const burningSeen = [];  // arbres en feu visibles, pour dessiner leurs flammes
 const lanternsSeen = []; // lanternes visibles, pour leur halo
@@ -32,10 +32,19 @@ function resizeView() {
   view.canvas.style.height = (view.h * view.scale) / view.dpr + 'px';
   document.body.classList.toggle('portrait', innerHeight > innerWidth);
   view.ctx.imageSmoothingEnabled = false;
-  const g = view.ctx.createLinearGradient(0, 0, 0, view.h);
-  g.addColorStop(0, '#7fb6f0');
-  g.addColorStop(1, '#d6ebff');
-  view.sky = g;
+  if (!view.sea) view.sea = view.ctx.createPattern(buildSea(), 'repeat');
+}
+
+// Mer à perte de vue : bleu nuit parsemé de petites vagues en tirets
+function buildSea() {
+  const r = mulberry32(4242), W = 96, Hh = 48, p = new Pix(W, Hh);
+  const base = toRgb(['#24457f', '#264884', '#22427a']), hl = toRgb(['#3c62a8', '#5a82c8']);
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) p.set(x, y, base[(r() * 3) | 0]);
+  for (let k = 0; k < 70; k++) {
+    const x = (r() * W) | 0, y = (r() * Hh) | 0, len = 2 + ((r() * 3) | 0), c = r() < 0.3 ? hl[1] : hl[0];
+    for (let s = 0; s < len; s++) p.set((x + s) % W, y, c);
+  }
+  return p.canvas();
 }
 
 function camTarget() {
@@ -76,11 +85,15 @@ function render() {
   const now = performance.now() / 1000;
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = view.sky;
-  ctx.fillRect(0, 0, W, Hh);
-
   const cx = Math.round(view.camX + (Math.random() - 0.5) * FX.shake);
   const cy = Math.round(view.camY + (Math.random() - 0.5) * FX.shake);
+  // la mer suit la caméra et ondule doucement
+  const ox = ((-cx + Math.floor(now * 3)) % 96 + 96) % 96, oy = ((-cy - EDGE_H * HS) % 48 + 48) % 48;
+  ctx.save();
+  ctx.translate(ox - 96, oy - 48);
+  ctx.fillStyle = view.sea;
+  ctx.fillRect(0, 0, W + 192, Hh + 96);
+  ctx.restore();
   playerSX = isoX(Player.x, Player.y) - cx;
   playerSY = isoY(Player.x, Player.y, Player.z) - cy;
   burningSeen.length = 0;

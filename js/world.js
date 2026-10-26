@@ -15,27 +15,35 @@ const World = {
 
 // Couleurs des débris projetés, par type de sol et par objet
 const DEBRIS = [
-  ['#4f913d', '#3d7534', '#6db84c', '#6e4b2f', '#7a5535'],
-  ['#6e4b2f', '#7a5535', '#86603c', '#5a3d27'],
-  ['#2f2622', '#453830', '#1a1512', '#5a4a40'],
+  ['#62a838', '#4a8a2c', '#7cc04c', '#8a5a32', '#9a6a3e'],
+  ['#9a6a3e', '#8a5a32', '#a47244', '#764c2b'],
+  ['#3a2e2a', '#4d3d34', '#241c18', '#6a5a50'],
   ['#251a33', '#3a2358', '#191223', '#4b2a75'],
-  ['#4086c8', '#9fd0ff', '#2f6fb0'],
-  ['#d8c48a', '#c4ae70', '#e0cf98'],
-  ['#8a8a92', '#6a6a72', '#a5a5ad'],
-  ['#4f913d', '#3d7534', '#e98bb5', '#f2d544', '#f4f1e0'],
+  ['#3c62a8', '#a8c8ff', '#24457f'],
+  ['#e2c088', '#c8a06a', '#f2dcae'],
+  ['#a09a94', '#7e7872', '#bab4ae'],
+  ['#62a838', '#4a8a2c', '#f2a6c8', '#ffd84a', '#fff6e0'],
 ];
 const WATER_DROPS = DEBRIS[T_WATER];
 const CHUNKS = {
-  oak: ['#4a3220', '#6b4a2f', '#86603c', '#2a6334', '#387d3b', '#4f9a43', '#78bd52'],
+  oak: ['#4e321e', '#74492a', '#94633a', '#2a6630', '#3a8238', '#52a044', '#78c058'],
+  sakura: ['#4e321e', '#74492a', '#c85a88', '#e47ea6', '#f4a8c4', '#ffd4e4'],
+  tuft: ['#24501e', '#336a26', '#457f2e'],
+  reed: ['#3a5e22', '#55782c', '#5a3a1e'],
+  lily: ['#2f7a3a', '#4aa04a', '#6cc060'],
   pine: ['#4a3220', '#6b4a2f', '#143628', '#1f5040', '#2c6a4f'],
   rock: ['#4e5260', '#6b7080', '#8d93a3', '#b4b9c6'],
-  bush: ['#2a6334', '#387d3b', '#4f9a43', '#78bd52', '#e98bb5'],
+  bush: ['#2a6630', '#3a8238', '#52a044', '#78c058', '#f2a6c8'],
   torii: ['#c8322a', '#8f1f1a', '#1c1416', '#e05a48'],
   lantern: ['#8d93a3', '#6b7080', '#b4b9c6', '#ffd36a'],
 };
 const CHARRED = ['#1a1512', '#2f2622', '#453830', '#6a5a50'];
 const OBJ_STATS = {
   oak: { hp: 1.6, rad: 0.3, shw: 12 },
+  sakura: { hp: 1.6, rad: 0.3, shw: 12 },
+  tuft: { hp: 0.2, rad: 0, shw: 0 },
+  reed: { hp: 0.2, rad: 0, shw: 0 },
+  lily: { hp: 0.2, rad: 0, shw: 0 },
   pine: { hp: 1.2, rad: 0.25, shw: 9 },
   rock: { hp: 2.5, rad: 0.38, shw: 9 },
   bush: { hp: 0.3, rad: 0, shw: 7 },
@@ -80,7 +88,6 @@ function generateWorld(seed) {
   const each = (fn) => {
     for (let j = 0; j < MAP_H; j++) for (let i = 0; i < MAP_W; i++) fn(i, j, j * MAP_W + i);
   };
-  const neighbours8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
 
   // relief, lacs, champs de fleurs
   each((i, j, idx) => {
@@ -90,21 +97,25 @@ function generateWorld(seed) {
     H[idx] = clamp(h, 0, 3);
     T[idx] = T_GRASS;
     V[idx] = (r() * 255) | 0;
-    if (dc > 14 && fbm(nl, i / 18, j / 18, 3) > 0.63) {
+    // l'île est bordée par la mer, avec une côte découpée
+    const coast = Math.min(i, j, MAP_W - 1 - i, MAP_H - 1 - j) + (fbm(nl, i / 9, j / 9, 2) - 0.5) * 10;
+    if (coast < 4 || (dc > 14 && fbm(nl, i / 18, j / 18, 3) > 0.63)) {
       T[idx] = T_WATER;
       H[idx] = WATER_H;
     } else if (fbm(nfl, i / 12, j / 12, 2) > 0.62) {
       T[idx] = T_FLOWER;
     }
   });
-  // plages autour des lacs
+  // plages de sable autour de l'eau (deux tuiles de large)
   each((i, j, idx) => {
     if (T[idx] === T_WATER) return;
-    for (const [di, dj] of neighbours8) {
-      if (inMap(i + di, j + dj) && T[(j + dj) * MAP_W + i + di] === T_WATER) {
-        T[idx] = T_SAND;
-        H[idx] = Math.min(H[idx], 0);
-        return;
+    for (let dj = -2; dj <= 2; dj++) {
+      for (let di = -2; di <= 2; di++) {
+        if (inMap(i + di, j + dj) && T[(j + dj) * MAP_W + i + di] === T_WATER) {
+          T[idx] = T_SAND;
+          H[idx] = Math.min(H[idx], Math.abs(di) + Math.abs(dj) > 2 ? 1 : 0);
+          return;
+        }
       }
     }
   });
@@ -155,13 +166,24 @@ function generateWorld(seed) {
     const roll = r();
     const x = i + 0.3 + r() * 0.4, y = j + 0.3 + r() * 0.4;
     if (roll < (forest ? 0.24 : 0.018)) {
-      if (fbm(nt, i / 25, j / 25, 2) > 0.5) addObject('tree', 'pine', x, y, pick(Gfx.pines, r));
+      const kind = fbm(nt, i / 25, j / 25, 2);
+      if (kind > 0.6) addObject('tree', 'pine', x, y, pick(Gfx.pines, r));
+      else if (kind < 0.42 && r() < 0.6) addObject('tree', 'sakura', x, y, pick(Gfx.sakuras, r));
       else addObject('tree', 'oak', x, y, pick(Gfx.oaks, r));
     } else if (roll < (forest ? 0.3 : 0.03)) {
       addObject('bush', 'bush', x, y, pick(Gfx.bushes, r));
     } else if (roll < (forest ? 0.31 : 0.036)) {
       addObject('rock', 'rock', x, y, pick(Gfx.rocks, r));
+    } else if (roll < (forest ? 0.36 : 0.1)) {
+      addObject('bush', 'tuft', x, y, pick(Gfx.tufts, r));
     }
+  });
+  // roseaux sur les rives, nénuphars sur les lacs (décor fragile, sans collision)
+  each((i, j, idx) => {
+    if (occ[idx]) return;
+    const x = i + 0.3 + r() * 0.4, y = j + 0.3 + r() * 0.4;
+    if (T[idx] === T_SAND && r() < 0.16) addObject('bush', 'reed', x, y, pick(Gfx.reeds, r));
+    else if (T[idx] === T_WATER && r() < 0.035) addObject('bush', 'lily', x, y, pick(Gfx.lilies, r));
   });
   floodQ.clear();
   updateObjects(0);

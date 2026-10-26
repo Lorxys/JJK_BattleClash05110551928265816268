@@ -9,7 +9,7 @@ const HS = 8;             // pixels par unité de hauteur
 const MAP_W = 128;
 const MAP_H = 128;
 const MIN_H = -5;         // profondeur max d'un cratère
-const EDGE_H = -10;       // niveau du vide autour de l'île (falaises du bord)
+const EDGE_H = -1;        // la mer qui entoure l'île (même niveau que les lacs)
 const MAX_DROP = 16;      // hauteur max d'une face latérale (en unités)
 const GRAVITY = 32;
 

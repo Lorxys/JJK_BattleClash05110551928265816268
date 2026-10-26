@@ -156,30 +156,31 @@ function buildGojo() {
 }
 
 // --- Tuiles ----------------------------------------------------------------
-const GRASS_BASE = ['#3d7534', '#468439', '#4f913d', '#4a8a3a', '#55963f'];
+// Charte claire et saturée : herbe vert tendre, sable chaud, mer bleu nuit
+const GRASS_BASE = ['#62a838', '#5ea236', '#68ae3c', '#64aa3a', '#6db240', '#5a9c34'];
 const TOP_PAL = [
   toRgb(GRASS_BASE),
-  toRgb(['#6e4b2f', '#7a5535', '#86603c', '#704d30']),
-  toRgb(['#2f2622', '#3a2f29', '#453830', '#2a221e']),
-  toRgb(['#191223', '#1f162b', '#251a33', '#1c1428']),
-  toRgb(['#2f6fb0', '#3473b5', '#2c69a8', '#3779bd']),
-  toRgb(['#d8c48a', '#cfba7e', '#e0cf98', '#d2bf86']),
-  toRgb(['#8a8a92', '#93939b', '#84848c']),
+  toRgb(['#9a6a3e', '#8f6139', '#a47244', '#946640']),
+  toRgb(['#3a2e2a', '#43362f', '#4d3d34', '#352a25']),
+  toRgb(['#1e1630', '#241a38', '#2a1f40', '#211834']),
+  toRgb(['#24457f', '#264884', '#22427a', '#284b88']),
+  toRgb(['#e2c088', '#dcba82', '#e6c68e', '#d9b67e']),
+  toRgb(['#a09a94', '#a8a29c', '#98928c']),
   toRgb(GRASS_BASE),
 ];
 
-const DIRT_BODY = toRgb(['#6b4a2f', '#5f4129', '#74513a', '#5a3d27']);
+const DIRT_BODY = toRgb(['#8a5a32', '#7e522e', '#946238', '#764c2b']);
 const SIDE_PAL = [
-  { lip: toRgb(['#3d7534', '#2e6229']), body: DIRT_BODY, stone: hexToRgb('#8a7a6a') },
-  { lip: toRgb(['#7a5535', '#6e4b2f']), body: DIRT_BODY, stone: hexToRgb('#8a7a6a') },
-  { lip: toRgb(['#2a221e', '#1e1815']), body: toRgb(['#3d302a', '#352a25', '#46372f', '#30261f']), stone: hexToRgb('#5a4a40') },
+  { lip: toRgb(['#5a9c34', '#3f7a28']), body: DIRT_BODY, stone: hexToRgb('#a88a6a') },
+  { lip: toRgb(['#9a6a3e', '#86592f']), body: DIRT_BODY, stone: hexToRgb('#a88a6a') },
+  { lip: toRgb(['#352a25', '#28201c']), body: toRgb(['#4a3a32', '#42342d', '#524038', '#3c2f29']), stone: hexToRgb('#6a5a50') },
   { lip: toRgb(['#3a2358', '#2b1a42']), body: toRgb(['#171020', '#1c1427', '#140d1c', '#21172e']), stone: hexToRgb('#6a35b8') },
-  { lip: toRgb(['#5a9ad8', '#3779bd']), body: toRgb(['#1f4f86', '#245a95', '#1c4a7e', '#285f9c']), stone: hexToRgb('#5a9ad8') },
-  { lip: toRgb(['#d8c48a', '#c4ae70']), body: toRgb(['#b39d62', '#a88f55', '#bca86c', '#9f8750']), stone: hexToRgb('#8a7a6a') },
-  { lip: toRgb(['#8a8a92', '#6a6a72']), body: toRgb(['#6e6e76', '#62626a', '#77777f', '#5a5a62']), stone: hexToRgb('#9a9aa2') },
-  { lip: toRgb(['#3d7534', '#2e6229']), body: DIRT_BODY, stone: hexToRgb('#8a7a6a') },
+  { lip: toRgb(['#3e63a6', '#2a4a88']), body: toRgb(['#1c3668', '#1f3a6e', '#1a3262', '#213e74']), stone: hexToRgb('#3e63a6') },
+  { lip: toRgb(['#e2c088', '#c9a46e']), body: toRgb(['#c49c66', '#b8905c', '#cca46c', '#b08856']), stone: hexToRgb('#9a7a5a') },
+  { lip: toRgb(['#a09a94', '#7e7872']), body: toRgb(['#86807a', '#7a746e', '#8e8882', '#706a64']), stone: hexToRgb('#b0aaa4') },
+  { lip: toRgb(['#5a9c34', '#3f7a28']), body: DIRT_BODY, stone: hexToRgb('#a88a6a') },
 ];
-const FLOWER_COLS = toRgb(['#f4f1e0', '#f2d544', '#e98bb5', '#8fb7f2', '#f08a5d']);
+const FLOWER_COLS = toRgb(['#fff6e0', '#ffd84a', '#f2a6c8', '#8fa8ff', '#ff8a5a']);
 
 // Masque du losange 32x16
 function inDiamond(x, y) {
@@ -199,11 +200,11 @@ function randomInDiamond(r, minY = 0) {
 }
 
 function addBlades(p, r, count) {
-  const light = toRgb(['#6db84c', '#82c95a']), dark = hexToRgb('#2e6229');
+  const light = toRgb(['#7cc04c', '#88c858']), dark = toRgb(['#4a8a2c', '#3f7a28']);
   for (let k = 0; k < count; k++) {
     const [x, y] = randomInDiamond(r, 2);
-    const hgt = 2 + ((r() * 2) | 0);
-    const c = r() < 0.65 ? pick(light, r) : dark;
+    const hgt = 1 + ((r() * 2) | 0);
+    const c = r() < 0.5 ? pick(light, r) : pick(dark, r);
     for (let s = 0; s < hgt; s++) p.set(x + (s === hgt - 1 && r() < 0.4 ? 1 : 0), y + 4 - s, c);
   }
 }
@@ -212,7 +213,7 @@ function addFlowers(p, r, count, cols) {
   for (let k = 0; k < count; k++) {
     const [x, y] = randomInDiamond(r, 3);
     p.set(x, y + 3, pick(cols, r));
-    p.set(x, y + 4, hexToRgb('#2e6229'));
+    p.set(x, y + 4, hexToRgb('#3f7a28'));
   }
 }
 
@@ -235,7 +236,7 @@ function buildTop(t, r) {
     }
   }
   if (t === T_GRASS) {
-    addBlades(p, r, 8 + ((r() * 9) | 0));
+    addBlades(p, r, 4 + ((r() * 6) | 0));
     if (r() < 0.4) addFlowers(p, r, 1 + ((r() * 3) | 0), [pick(FLOWER_COLS, r)]);
   } else if (t === T_FLOWER) {
     addBlades(p, r, 5 + ((r() * 5) | 0));
@@ -263,19 +264,20 @@ function buildTop(t, r) {
       else y += r() < 0.5 ? -1 : 1;
     }
   } else if (t === T_WATER) {
-    // reflets
-    const hl = toRgb(['#6fb0e8', '#bfe2ff']);
-    const n = 2 + ((r() * 3) | 0);
+    // petites vagues en tirets
+    const hl = toRgb(['#3c62a8', '#5a82c8']);
+    const n = 4 + ((r() * 3) | 0);
     for (let k = 0; k < n; k++) {
       const [x, y] = randomInDiamond(r, 1);
-      const len = 2 + ((r() * 3) | 0);
-      for (let s = 0; s < len; s++) if (inDiamond(x + s, y)) p.set(x + s, y + 4, hl[s === 1 ? 1 : 0]);
+      const len = 2 + ((r() * 3) | 0), c = r() < 0.3 ? hl[1] : hl[0];
+      for (let s = 0; s < len; s++) if (inDiamond(x + s, y)) p.set(x + s, y + 4, c);
     }
   } else if (t === T_SAND) {
-    const n = 2 + ((r() * 3) | 0);
+    // grain du sable
+    const n = 10 + ((r() * 8) | 0);
     for (let k = 0; k < n; k++) {
       const [x, y] = randomInDiamond(r);
-      p.set(x, y + 4, hexToRgb(r() < 0.5 ? '#b39d62' : '#f4ead0'));
+      p.set(x, y + 4, hexToRgb(r() < 0.55 ? '#c8a06a' : '#f2dcae'));
     }
   }
   return p.canvas();
@@ -342,9 +344,10 @@ function buildFlame(r) {
 }
 
 // --- Végétation, rochers, sanctuaires -----------------------------------------
-const LEAF_OAK = toRgb(['#1d4a2a', '#2a6334', '#387d3b', '#4f9a43', '#78bd52']);
-const LEAF_PINE = toRgb(['#143628', '#1f5040', '#2c6a4f', '#468a5d']);
-const BARK = toRgb(['#4a3220', '#6b4a2f', '#86603c']);
+const LEAF_OAK = toRgb(['#1c4424', '#2a6630', '#3a8238', '#52a044', '#78c058']);
+const LEAF_SAKURA = toRgb(['#9a3e66', '#c85a88', '#e47ea6', '#f4a8c4', '#ffd4e4']);
+const LEAF_PINE = toRgb(['#163a26', '#22573a', '#2f7246', '#4a9058']);
+const BARK = toRgb(['#4e321e', '#74492a', '#94633a']);
 
 function shadeBlobs(p, blobs, pal, r, x0, x1, y0, y1, thresholds) {
   for (let y = y0; y < y1; y++) {
@@ -365,7 +368,7 @@ function shadeBlobs(p, blobs, pal, r, x0, x1, y0, y1, thresholds) {
   }
 }
 
-function buildOak(r) {
+function buildOak(r, leaves = LEAF_OAK) {
   const W = 38, H = 52, cx = 19, p = new Pix(W, H);
   for (let y = 30; y < H - 2; y++) {
     const flare = y > H - 7 ? y - (H - 7) : 0;
@@ -386,9 +389,60 @@ function buildOak(r) {
     const a = r() * Math.PI * 2, d = 3 + r() * 4;
     blobs.push({ x: cx + Math.cos(a) * d * 1.25, y: 18 + Math.sin(a) * d * 0.85, r: 5 + r() * 4 });
   }
-  shadeBlobs(p, blobs, LEAF_OAK, r, 0, W, 0, 36, [-0.35, 0, 0.3, 0.55]);
+  shadeBlobs(p, blobs, leaves, r, 0, W, 0, 36, [-0.35, 0, 0.3, 0.55]);
   p.outline(OUTLINE);
   return { c: p.canvas(), ax: cx, ay: H - 3 };
+}
+
+// Touffe de hautes herbes sombres
+function buildTuft(r) {
+  const W = 14, H = 12, p = new Pix(W, H);
+  const pal = toRgb(['#24501e', '#336a26', '#457f2e']);
+  const n = 6 + ((r() * 4) | 0);
+  for (let k = 0; k < n; k++) {
+    const x0 = 2 + ((r() * 10) | 0), hgt = 5 + ((r() * 5) | 0), lean = (x0 - 7) * 0.12;
+    for (let s = 0; s < hgt; s++) p.set(Math.round(x0 + lean * s), 10 - s, pal[s > hgt - 3 ? 2 : (r() * 2) | 0]);
+  }
+  p.outline(OUTLINE);
+  return { c: p.canvas(), ax: 7, ay: 10 };
+}
+
+// Roseaux (massettes) au bord de l'eau
+function buildReed(r) {
+  const W = 18, H = 26, p = new Pix(W, H);
+  const stem = toRgb(['#3a5e22', '#55782c', '#6e8a34']), head = toRgb(['#5a3a1e', '#7a5028']);
+  const n = 4 + ((r() * 3) | 0);
+  for (let k = 0; k < n; k++) {
+    const x = 3 + ((r() * 12) | 0), hgt = 14 + ((r() * 9) | 0);
+    for (let s = 0; s < hgt; s++) {
+      p.set(x, 24 - s, stem[(r() * 3) | 0]);
+      if (s < hgt / 2) p.set(x + 1, 24 - s, stem[0]);
+    }
+    if (r() < 0.7) fillRect(p, x, 24 - hgt - 1, x + 1, 24 - hgt + 4, head[r() < 0.5 ? 0 : 1]);
+  }
+  p.outline(OUTLINE);
+  return { c: p.canvas(), ax: 9, ay: 24 };
+}
+
+// Nénuphar posé sur l'eau
+function buildLily(r) {
+  const W = 12, H = 7, p = new Pix(W, H);
+  const [d, m, l] = toRgb(['#2f7a3a', '#4aa04a', '#6cc060']);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = (x - 5.5) / 5.5, dy = (y - 3) / 3;
+      if (dx * dx + dy * dy > 1 || (x >= 6 && y === 3)) continue;
+      p.set(x, y, dy < -0.3 ? l : dy > 0.4 ? d : m);
+    }
+  }
+  if (r() < 0.5) {
+    const fc = hexToRgb(r() < 0.5 ? '#ffd4e4' : '#fff6e0');
+    p.set(4, 2, fc);
+    p.set(5, 2, fc);
+    p.set(4, 1, fc);
+  }
+  p.outline(OUTLINE);
+  return { c: p.canvas(), ax: 6, ay: 4 };
 }
 
 function buildPine(r) {
@@ -417,7 +471,7 @@ function buildBush(r) {
   const W = 20, H = 14, p = new Pix(W, H);
   const blobs = [{ x: 10, y: 8, r: 5 }];
   for (let k = 0; k < 3; k++) blobs.push({ x: 10 + (r() - 0.5) * 8, y: 8 + (r() - 0.5) * 3, r: 3 + r() * 2 });
-  shadeBlobs(p, blobs, toRgb(['#1f4d2b', '#2d6b35', '#3f8a3c', '#5fa848', '#86c95e']), r, 0, W, 0, 13, [-0.35, 0, 0.3, 0.55]);
+  shadeBlobs(p, blobs, LEAF_OAK, r, 0, W, 0, 13, [-0.35, 0, 0.3, 0.55]);
   if (r() < 0.6) {
     const fc = pick(toRgb(['#e98bb5', '#f4f1e0', '#f2d544']), r);
     for (let k = 0; k < 4; k++) {
@@ -431,7 +485,7 @@ function buildBush(r) {
 
 function buildRock(r) {
   const W = 20, H = 15, p = new Pix(W, H);
-  const pal = toRgb(['#3e414d', '#585c6b', '#767b8b', '#9aa0b0', '#c0c5d2']);
+  const pal = toRgb(['#4a4a52', '#66666e', '#86868e', '#a6a6ac', '#c8c8cc']);
   const rx = 7 + r() * 2, ry = 5 + r() * 1.5, cx = 10, cy = 13 - ry;
   for (let y = 0; y <= 13; y++) {
     for (let x = 0; x < W; x++) {
@@ -613,6 +667,10 @@ function buildGraphics() {
   Gfx.lanternGlow = glowCanvas(18, '255,210,110', 0.7);
   Gfx.flames = [0, 1, 2].map(() => buildFlame(r));
   Gfx.oaks = [0, 1, 2, 3].map(() => buildOak(r));
+  Gfx.sakuras = [0, 1, 2].map(() => buildOak(r, LEAF_SAKURA));
+  Gfx.tufts = [0, 1, 2, 3].map(() => buildTuft(r));
+  Gfx.reeds = [0, 1, 2].map(() => buildReed(r));
+  Gfx.lilies = [0, 1, 2].map(() => buildLily(r));
   Gfx.pines = [0, 1, 2].map(() => buildPine(r));
   Gfx.bushes = [0, 1, 2].map(() => buildBush(r));
   Gfx.rocks = [0, 1, 2].map(() => buildRock(r));

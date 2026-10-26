@@ -217,10 +217,10 @@ function initHud() {
   hud.domain = document.querySelector('.skill[data-k="domain"]');
   hud.domainCd = hud.domain.querySelector('.cd');
   hud.charge = document.querySelector('.charge > i');
-  hud.hp = document.querySelector('#stats .hp > i');
-  hud.ce = document.querySelector('#stats .ce > i');
+  hud.hp = document.querySelector('#stats .hp i');
+  hud.ce = document.querySelector('#stats .ce i');
   hud.ceBar = document.querySelector('#stats .ce');
-  hud.dom = document.querySelector('#stats .dom > i');
+  hud.dom = document.querySelector('#stats .dom i');
   hud.wave = document.getElementById('wave');
   hud.banner = document.getElementById('banner');
 }
@@ -241,7 +241,7 @@ function updateHud() {
   hud.dom.style.width = Domain.gauge + '%';
   const left = curses.length + Waves.queue.length;
   hud.wave.textContent = Waves.n
-    ? `Vague ${Waves.n} · Fléaux : ${left} · Exorcisés : ${Waves.kills}`
+    ? `Vague ${Waves.n}   Fléaux ${left}   Exorcisés ${Waves.kills}`
     : 'Les fléaux arrivent…';
 }
 

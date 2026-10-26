@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>JJK Battle Clash</title>
-  <meta name="theme-color" content="#0d0f1a">
+  <meta name="theme-color" content="#24457f">
   <!-- installable sur l'écran d'accueil (Android et iOS), en plein écran, à l'horizontale -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
@@ -15,17 +15,18 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <canvas id="game"></canvas>
 
   <div id="stats">
-    <div class="bar hp"><i></i><span>PV</span></div>
-    <div class="bar ce"><i></i><span>Énergie occulte</span></div>
-    <div class="bar dom"><i></i><span>Territoire</span></div>
+    <div class="who">Satoru Gojo</div>
     <div id="wave"></div>
+    <div class="bar hp"><span>PV</span><b><i></i></b></div>
+    <div class="bar ce"><span>Énergie</span><b><i></i></b></div>
+    <div class="bar dom"><span>Territoire</span><b><i></i></b></div>
   </div>
 
   <div id="title">JJK BATTLE CLASH<span>La prairie · Satoru Gojo</span></div>
@@ -47,26 +48,27 @@
   <div id="joy"><i></i></div>
 
   <div id="hud">
+    <!-- .key : touche au clavier, .glyph : lettre affichée sur mobile -->
     <div class="skill" data-k="blue">
-      <div class="ico blue"></div><div class="cd"></div>
-      <div class="key">A</div><div class="nm">Bleu</div>
+      <div class="disc"><div class="cd"></div><span class="key">A</span><span class="glyph">B</span></div>
+      <div class="nm">Bleu</div>
     </div>
     <div class="skill" data-k="red">
-      <div class="ico red"></div><div class="cd"></div>
-      <div class="key">E</div><div class="nm">Rouge</div>
+      <div class="disc"><div class="cd"></div><span class="key">E</span><span class="glyph">R</span></div>
+      <div class="nm">Rouge</div>
     </div>
     <div class="skill" data-k="purple">
-      <div class="ico purple"></div><div class="cd"></div>
-      <div class="key">A+E</div><div class="nm">Violet</div>
-      <div class="charge"><i></i></div>
+      <div class="disc"><div class="cd"></div><span class="key">A+E</span><span class="glyph">V</span>
+        <div class="charge"><i></i></div></div>
+      <div class="nm">Violet</div>
     </div>
     <div class="skill" data-k="dash">
-      <div class="ico dash"></div><div class="cd"></div>
-      <div class="key">ESP</div><div class="nm">Téléport</div>
+      <div class="disc"><div class="cd"></div><span class="key">Esp</span><span class="glyph">&gt;&gt;</span></div>
+      <div class="nm">Téléport</div>
     </div>
     <div class="skill" data-k="domain">
-      <div class="ico domain"></div><div class="cd"></div>
-      <div class="key">F</div><div class="nm">Territoire</div>
+      <div class="disc"><div class="cd"></div><span class="key">F</span><span class="glyph">T</span></div>
+      <div class="nm">Territoire</div>
     </div>
   </div>
 
