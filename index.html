@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JJK Battle Clash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="title">JJK BATTLE CLASH<span>La prairie · Satoru Gojo</span></div>
+  <div id="mute"></div>
+
+  <div id="help">
+    <p><b>ZQSD</b> / flèches : se déplacer</p>
+    <p><b>Souris</b> : viser</p>
+    <p><b>A</b> / clic gauche : Bleu</p>
+    <p><b>E</b> / clic droit : Rouge</p>
+    <p><b>R</b> maintenu : Violet</p>
+    <p><b>Espace</b> : téléportation</p>
+    <p><b>Molette</b> : zoom</p>
+    <p><b>N</b> : nouvelle carte · <b>M</b> : son</p>
+    <p class="dim">H : masquer l'aide</p>
+  </div>
+
+  <div id="hud">
+    <div class="skill" data-k="blue">
+      <div class="ico blue"></div><div class="cd"></div>
+      <div class="key">A</div><div class="nm">Bleu</div>
+    </div>
+    <div class="skill" data-k="red">
+      <div class="ico red"></div><div class="cd"></div>
+      <div class="key">E</div><div class="nm">Rouge</div>
+    </div>
+    <div class="skill" data-k="purple">
+      <div class="ico purple"></div><div class="cd"></div>
+      <div class="key">R</div><div class="nm">Violet</div>
+      <div class="charge"><i></i></div>
+    </div>
+    <div class="skill" data-k="dash">
+      <div class="ico dash"></div><div class="cd"></div>
+      <div class="key">ESP</div><div class="nm">Téléport</div>
+    </div>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/abilities.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

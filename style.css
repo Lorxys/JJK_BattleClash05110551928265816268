@@ -1,0 +1,140 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0f1a;
+}
+
+body {
+  font-family: 'Press Start 2P', monospace;
+  color: #f4f6fb;
+  user-select: none;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+#title {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  font-size: 14px;
+  text-align: right;
+  text-shadow: 2px 2px 0 #1b1f3a, 0 0 12px rgba(120, 180, 255, 0.6);
+  pointer-events: none;
+}
+
+#title span {
+  display: block;
+  margin-top: 6px;
+  font-size: 8px;
+  color: #b8c8ff;
+}
+
+#mute {
+  position: fixed;
+  top: 50px;
+  right: 16px;
+  font-size: 8px;
+  color: #ffb0a0;
+  pointer-events: none;
+}
+
+#help {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  padding: 10px 12px;
+  font-size: 8px;
+  line-height: 1.5;
+  background: rgba(10, 12, 26, 0.72);
+  border: 2px solid #3a4370;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+#help p { margin: 3px 0; }
+#help b { color: #9fd4ff; }
+#help .dim { color: #8088aa; margin-top: 8px; }
+.hidden { display: none; }
+
+#hud {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.skill {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  background: rgba(10, 12, 26, 0.8);
+  border: 2px solid #3a4370;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.skill.ready { border-color: #8ea0e8; }
+
+.ico {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border-radius: 50%;
+}
+
+.ico.blue { background: radial-gradient(circle, #fff 0 18%, #6fb8ff 40%, #1d4fb8 68%, transparent 72%); }
+.ico.red { background: radial-gradient(circle, #fff 0 18%, #ff7a3a 40%, #b81d1d 68%, transparent 72%); }
+.ico.purple { background: radial-gradient(circle, #fff 0 18%, #c27cff 40%, #5a1db8 68%, transparent 72%); }
+.ico.dash { background: radial-gradient(circle, #fff 0 14%, #8ee6ff 36%, transparent 40%, transparent 52%, #8ee6ff 56%, transparent 62%); }
+
+.cd {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+
+.key {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 8px;
+  color: #ffe08a;
+}
+
+.nm {
+  position: absolute;
+  bottom: 5px;
+  width: 100%;
+  font-size: 7px;
+  text-align: center;
+}
+
+.charge {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 16px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.charge > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #c27cff;
+}
