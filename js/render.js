@@ -4,7 +4,8 @@
 // Rendu : tuiles en diagonales (de l'arrière vers l'avant), objets triés par
 // profondeur, puis une couche additive pour les effets lumineux.
 // ---------------------------------------------------------------------------
-const view = { canvas: null, ctx: null, scale: 3, userScale: 0, w: 0, h: 0, camX: 0, camY: 0, sky: null };
+// scale = nombre de pixels physiques de l'écran par pixel du jeu
+const view = { canvas: null, ctx: null, scale: 3, userScale: 0, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sky: null };
 const buckets = [];
 const burningSeen = [];  // arbres en feu visibles, pour dessiner leurs flammes
 const lanternsSeen = []; // lanternes visibles, pour leur halo
@@ -14,17 +15,22 @@ function initView() {
   view.canvas = document.getElementById('game');
   view.ctx = view.canvas.getContext('2d');
   addEventListener('resize', resizeView);
+  addEventListener('orientationchange', () => setTimeout(resizeView, 200));
   resizeView();
 }
 
 function resizeView() {
-  view.scale = view.userScale || Math.max(2, Math.round(innerHeight / 330));
-  view.w = Math.ceil(innerWidth / view.scale);
-  view.h = Math.ceil(innerHeight / view.scale);
+  // on raisonne en pixels physiques pour rester net sur les écrans haute densité
+  view.dpr = window.devicePixelRatio || 1;
+  const devW = innerWidth * view.dpr, devH = innerHeight * view.dpr;
+  view.scale = view.userScale || Math.max(2, Math.round(devH / 330));
+  view.w = Math.ceil(devW / view.scale);
+  view.h = Math.ceil(devH / view.scale);
   view.canvas.width = view.w;
   view.canvas.height = view.h;
-  view.canvas.style.width = view.w * view.scale + 'px';
-  view.canvas.style.height = view.h * view.scale + 'px';
+  view.canvas.style.width = (view.w * view.scale) / view.dpr + 'px';
+  view.canvas.style.height = (view.h * view.scale) / view.dpr + 'px';
+  document.body.classList.toggle('portrait', innerHeight > innerWidth);
   view.ctx.imageSmoothingEnabled = false;
   const g = view.ctx.createLinearGradient(0, 0, 0, view.h);
   g.addColorStop(0, '#7fb6f0');

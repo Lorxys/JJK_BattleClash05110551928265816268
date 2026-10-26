@@ -2,8 +2,17 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>JJK Battle Clash</title>
+  <meta name="theme-color" content="#0d0f1a">
+  <!-- installable sur l'écran d'accueil (Android et iOS), en plein écran, à l'horizontale -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JJK Clash">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -21,6 +30,7 @@
 
   <div id="title">JJK BATTLE CLASH<span>La prairie · Satoru Gojo</span></div>
   <div id="mute"></div>
+  <button id="pause-btn" aria-label="Pause">II</button>
 
   <div id="help">
     <p><b>ZQSD</b> / flèches : se déplacer · <b>Souris</b> : viser</p>
@@ -33,6 +43,8 @@
     <p><b>Échap</b> : pause · <b>N</b> : nouvelle carte · <b>M</b> : son</p>
     <p class="dim">L'Infinité bloque les coups tant qu'il reste de l'énergie occulte. H : masquer l'aide</p>
   </div>
+
+  <div id="joy"><i></i></div>
 
   <div id="hud">
     <div class="skill" data-k="blue">
@@ -66,6 +78,11 @@
     <div class="hint"></div>
   </div>
 
+  <div id="rotate">
+    <div class="phone"></div>
+    <p>Tourne ton appareil à l'horizontale</p>
+  </div>
+
   <script src="js/util.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/world.js"></script>
@@ -77,6 +94,7 @@
   <script src="js/player.js"></script>
   <script src="js/render.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/touch.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -52,6 +52,7 @@ function hurtGojo(dmg) {
   addShake(6);
   addFlash('255,40,40', 0.25);
   Sfx.hurt();
+  if (navigator.vibrate) navigator.vibrate(60);
   if (P.hp <= 0) {
     P.hp = 0;
     gameOver();
@@ -96,7 +97,7 @@ function updatePlayer(dt, ux, uy) {
     if (stuck || !isBlocked(P.x, ny)) P.y = ny;
     P.x = clamp(P.x, 0.4, MAP_W - 0.4);
     P.y = clamp(P.y, 0.4, MAP_H - 0.4);
-    if (P.castT <= 0) P.dir = ux ? (ux > 0 ? 'right' : 'left') : uy > 0 ? 'down' : 'up';
+    if (P.castT <= 0) P.dir = Math.abs(ux) > Math.abs(uy) ? (ux > 0 ? 'right' : 'left') : uy > 0 ? 'down' : 'up';
     P.animT += dt;
     // Gojo marche sur l'eau : petits remous
     if (typeAt(P.x, P.y) === T_WATER && Math.random() < dt * 10) {

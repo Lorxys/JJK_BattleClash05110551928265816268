@@ -26,6 +26,7 @@ function spawnCurse(type, x, y) {
     spawnSpark(x + rnd(-0.6, 0.6), y + rnd(-0.6, 0.6), groundAt(x, y), 0, 0, rnd(1, 4), pick(CURSE_SPARKS), rnd(0.4, 0.9), 2);
   }
   effects.push(new Shockwave(x, y, groundAt(x, y), '#8a2a9a', 1.4, 0.6));
+  Sfx.spawn();
 }
 
 function damageCurse(c, dmg, kx = 0, ky = 0, kz = 0) {
@@ -115,7 +116,7 @@ function bruteSlam(c) {
   }
   effects.push(new Shockwave(x, y, groundAt(x, y), '#c8b8a0', 3));
   addShake(8);
-  Sfx.boom(0.8);
+  Sfx.slam();
   if (Math.hypot(Player.x - x, Player.y - y) < 2.6) hurtGojo(CURSE_TYPES.brute.dmg);
 }
 
@@ -359,6 +360,7 @@ function startWave() {
   Waves.queue = q;
   Waves.timer = 5;
   showBanner(`Vague ${n}`, `${q.length} fléaux approchent`, 'wave', 2.4);
+  Sfx.wave();
 }
 
 function updateWaves(dt) {

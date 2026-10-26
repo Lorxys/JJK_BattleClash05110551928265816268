@@ -7,7 +7,8 @@ const keys = new Set();
 const mouse = { x: 0, y: 0, wx: MAP_W / 2, wy: MAP_H / 2, inside: false };
 const params = new URLSearchParams(location.search);
 const demo = params.has('demo');
-const Game = { over: false, paused: false, noEnergyT: 0 };
+const Game = { started: false, over: false, paused: false, noEnergyT: 0 };
+const TAP = IS_TOUCH ? 'Touchez l\'écran' : 'Cliquez ou appuyez sur une touche';
 let last = 0;
 
 function newWorld(seed) {
@@ -28,13 +29,34 @@ function newWorld(seed) {
 function gameOver() {
   Game.over = true;
   Player.charging = false;
-  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`, 'Entrée : recommencer');
+  if (IS_TOUCH) releaseAllTouches();
+  Sfx.gameover();
+  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`,
+    IS_TOUCH ? 'Touchez pour recommencer' : 'Entrée : recommencer');
 }
 
 function restart() {
   Game.over = false;
   hideOverlay();
   newWorld((Math.random() * 1e9) | 0);
+  Sfx.music('main');
+}
+
+// Premier geste du joueur : débloque le son et, sur mobile, passe en plein écran
+function startGame() {
+  if (Game.started) return;
+  Game.started = true;
+  hideOverlay();
+  Sfx.init();
+  Sfx.music('main');
+  if (IS_TOUCH) goLandscapeFullscreen();
+}
+
+function onOverlayTap(e) {
+  e.preventDefault();
+  if (!Game.started) startGame();
+  else if (Game.over) restart();
+  else if (Game.paused) togglePause();
 }
 
 // --- Bleu + Rouge -----------------------------------------------------------------
@@ -77,6 +99,10 @@ addEventListener('keydown', (e) => {
   if (PREVENT.has(e.code)) e.preventDefault();
   keys.add(e.code);
   if (e.repeat) return;
+  if (!Game.started) {
+    startGame();
+    return;
+  }
   if (Game.over) {
     if (e.code === 'Enter' || e.code === 'NumpadEnter') restart();
     return;
@@ -107,19 +133,25 @@ addEventListener('blur', () => {
   Player.charging = false;
 });
 
-addEventListener('mousemove', (e) => {
-  mouse.x = e.clientX / view.scale;
-  mouse.y = e.clientY / view.scale;
+// Souris (les doigts sont gérés dans touch.js)
+addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse') return;
+  Touch.used = false;
+  mouse.x = (e.clientX * view.dpr) / view.scale;
+  mouse.y = (e.clientY * view.dpr) / view.scale;
   mouse.inside = true;
 });
 document.addEventListener('mouseleave', () => { mouse.inside = false; });
 
-addEventListener('mousedown', (e) => {
+addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'mouse' || e.target.closest('#overlay')) return;
   Sfx.init();
+  if (!Game.started) return startGame();
   if (e.button === 0) pressSpell('blue');
   else if (e.button === 2) pressSpell('red');
 });
-addEventListener('mouseup', (e) => {
+addEventListener('pointerup', (e) => {
+  if (e.pointerType !== 'mouse') return;
   if (e.button === 0) releaseSpell('blue');
   else if (e.button === 2) releaseSpell('red');
 });
@@ -132,9 +164,10 @@ addEventListener('wheel', (e) => {
 }, { passive: false });
 
 function togglePause() {
-  if (Game.over) return;
+  if (Game.over || !Game.started) return;
   Game.paused = !Game.paused;
-  if (Game.paused) showOverlay('Pause', '', 'Échap : reprendre');
+  if (IS_TOUCH) releaseAllTouches();
+  if (Game.paused) showOverlay('Pause', '', IS_TOUCH ? 'Touchez pour reprendre' : 'Échap : reprendre');
   else hideOverlay();
 }
 
@@ -238,15 +271,18 @@ function update(dt) {
     if (bannerT <= 0) hud.banner.className = '';
   }
   Game.noEnergyT -= dt;
-  if (Game.paused || Game.over) return;
+  // le jeu se joue uniquement à l'horizontale sur mobile
+  const portrait = IS_TOUCH && innerHeight > innerWidth;
+  if (!Game.started || Game.paused || Game.over || portrait) return;
 
   let ux, uy;
   if (demo) {
     [ux, uy] = demoInput(dt);
   } else {
-    ux = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
-    uy = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0);
-    [mouse.wx, mouse.wy] = screenToWorld(mouse.x, mouse.y);
+    ux = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + Touch.ux;
+    uy = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + Touch.uy;
+    // au doigt, la visée vient des boutons (touch.js), pas de la souris
+    if (!Touch.used) [mouse.wx, mouse.wy] = screenToWorld(mouse.x, mouse.y);
   }
   updateCombo(dt);
   updateDomain(dt);
@@ -296,11 +332,19 @@ function init() {
   buildGraphics();
   initView();
   initHud();
+  initTouch();
+  Sfx.preload();
+  document.getElementById('overlay').addEventListener('pointerdown', onOverlayTap);
   mouse.x = view.w / 2;
   mouse.y = view.h / 2;
   const seed = params.has('seed') ? parseInt(params.get('seed'), 10) : (Math.random() * 1e9) | 0;
   newWorld(seed);
-  if (demo) document.getElementById('help').classList.add('hidden');
+  if (demo || params.has('sim')) {
+    Game.started = true;
+    document.getElementById('help').classList.add('hidden');
+  } else {
+    showOverlay('JJK BATTLE CLASH', 'Satoru Gojo contre les fléaux', `${TAP} pour commencer`);
+  }
   // ?sim=30 : avance de 30 s de jeu d'un coup (tests), puis mesure le rendu
   if (params.has('sim')) {
     const t0 = performance.now();

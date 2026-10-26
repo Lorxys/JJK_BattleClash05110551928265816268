@@ -4,10 +4,38 @@ Jeu perso en pixel art isométrique : on incarne **Satoru Gojo** sur une île fl
 (prairie, forêts, lacs, sanctuaires) et on exorcise des vagues de fléaux en
 détruisant le décor.
 
-Aucune dépendance, aucune image ni aucun son externe : tout est généré par le code.
-Il suffit d'ouvrir `index.html` dans un navigateur (ou de passer par GitHub Pages).
+Aucune dépendance : le pixel art est généré par le code, les sons aussi tant que les
+fichiers du dossier `audio/` ne sont pas fournis. Il suffit d'ouvrir `index.html`
+dans un navigateur (ou de passer par GitHub Pages).
 
-## Commandes
+## Mobile (Android / iOS) : le jeu principal
+
+Le jeu se joue **à l'horizontale**. À la verticale, il se met en attente et demande
+de tourner l'appareil.
+
+| Geste | Action |
+|---|---|
+| Doigt sur la moitié gauche | Joystick : se déplacer |
+| Toucher Bleu / Rouge | Tir sur le fléau le plus proche |
+| Glisser depuis Bleu / Rouge | Viser dans la direction du glissement (le Bleu va plus loin si on glisse plus) |
+| Bleu + Rouge tenus ensemble, ou bouton Violet | Charger le **Violet**, relâcher pour tirer |
+| Téléport | Téléportation vers le fléau le plus proche |
+| Territoire | Extension du territoire |
+| II | Pause |
+
+**Installer comme une appli** (plein écran, sans barre du navigateur) :
+
+- Android (Chrome) : menu ⋮ → *Ajouter à l'écran d'accueil*. L'écran est verrouillé
+  à l'horizontale.
+- iPhone / iPad (Safari) : bouton Partager → *Sur l'écran d'accueil*. iOS ne permet
+  pas de verrouiller l'orientation : on tourne simplement le téléphone.
+
+## Sons
+
+Dépose les MP3 dans `audio/` avec les noms listés dans
+[`audio/README.md`](audio/README.md). Chaque fichier présent remplace le son généré.
+
+## Commandes (ordinateur)
 
 | Touche | Action |
 |---|---|
@@ -48,7 +76,7 @@ Il suffit d'ouvrir `index.html` dans un navigateur (ou de passer par GitHub Page
 ## Options d'URL
 
 `?seed=42` carte précise · `?demo` Gojo joue tout seul · `?debug` FPS dans la console ·
-`?sim=30` avance de 30 s de jeu d'un coup (tests)
+`?sim=30` avance de 30 s de jeu d'un coup (tests) · `?touch` force les commandes tactiles
 
 ## Structure
 
@@ -62,5 +90,7 @@ Il suffit d'ouvrir `index.html` dans un navigateur (ou de passer par GitHub Page
 - `js/domain.js` : extension du territoire
 - `js/player.js` : déplacements, vie, énergie, Infinité
 - `js/render.js` : rendu isométrique
-- `js/audio.js` : bruitages synthétisés
+- `js/audio.js` : sons (fichiers de `audio/`, sinon bruitages synthétisés)
+- `js/touch.js` : commandes tactiles, plein écran, orientation
 - `js/main.js` : entrées, boucle de jeu, interface
+- `audio/` : musiques et bruitages (MP3) · `icons/` + `manifest.json` : installation mobile

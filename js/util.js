@@ -17,6 +17,9 @@ const T_GRASS = 0, T_DIRT = 1, T_BURNT = 2, T_VOID = 3, T_WATER = 4, T_SAND = 5,
 const WATER_H = -1;       // niveau de la surface des lacs
 
 // Projection monde -> écran. x, y en tuiles, z en unités de hauteur.
+// Téléphone / tablette (ou ?touch dans l'URL pour forcer l'interface tactile)
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
+
 const isoX = (x, y) => (x - y) * (TW / 2);
 const isoY = (x, y, z) => (x + y) * (TH / 2) - z * HS;
 

@@ -36,6 +36,8 @@ function activateDomain() {
   Player.charging = false;
   addShake(6);
   Sfx.domain();
+  Sfx.music('domain');
+  if (navigator.vibrate) navigator.vibrate(200);
   showBanner('領域展開', "Extension du territoire : Sphère de l'Infini", 'domain', 3.2);
 }
 
@@ -54,6 +56,7 @@ function updateDomain(dt) {
     Sfx.boom(0.5);
   } else if (D.state === 'closing' && D.t >= DOMAIN_CLOSE) {
     D.state = 'idle';
+    Sfx.music('main');
   }
 }
 
