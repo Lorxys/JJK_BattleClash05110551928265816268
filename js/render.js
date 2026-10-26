@@ -5,7 +5,7 @@
 // profondeur, puis une couche additive pour les effets lumineux.
 // ---------------------------------------------------------------------------
 // scale = nombre de pixels physiques de l'écran par pixel du jeu
-const view = { canvas: null, ctx: null, scale: 3, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null };
+const view = { canvas: null, ctx: null, scale: 4, hr: 2, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null, vignette: null };
 const buckets = [];
 const burningSeen = [];  // arbres en feu visibles, pour dessiner leurs flammes
 const lanternsSeen = []; // lanternes visibles, pour leur halo
@@ -20,19 +20,23 @@ function initView() {
 }
 
 function resizeView() {
-  // on raisonne en pixels physiques pour rester net sur les écrans haute densité
+  // on raisonne en pixels physiques pour rester net sur les écrans haute densité ;
+  // le canevas est deux fois plus fin que la grille du jeu (hr) pour que Gojo et
+  // les effets puissent être dessinés avec des demi-pixels
   view.dpr = window.devicePixelRatio || 1;
   const devW = innerWidth * view.dpr, devH = innerHeight * view.dpr;
-  view.scale = Math.max(2, Math.round(devH / 330));
+  view.scale = 2 * Math.max(1, Math.round(devH / 660));
   view.w = Math.ceil(devW / view.scale);
   view.h = Math.ceil(devH / view.scale);
-  view.canvas.width = view.w;
-  view.canvas.height = view.h;
+  view.canvas.width = view.w * view.hr;
+  view.canvas.height = view.h * view.hr;
   view.canvas.style.width = (view.w * view.scale) / view.dpr + 'px';
   view.canvas.style.height = (view.h * view.scale) / view.dpr + 'px';
   document.body.classList.toggle('portrait', innerHeight > innerWidth);
   view.ctx.imageSmoothingEnabled = false;
   if (!view.sea) view.sea = view.ctx.createPattern(buildSea(), 'repeat');
+  buildVignette();
+  snapCamera();
 }
 
 // Mer à perte de vue : bleu nuit parsemé de petites vagues en tirets
@@ -65,12 +69,14 @@ function playerSprite() {
   return Player.moving ? fr[1 + (Math.floor(Player.animT * 9) % 4)] : fr[0];
 }
 
+const SWAYING = new Set(['tuft', 'reed']);
 const byDepth = (a, b) => a.x + a.y - (b.x + b.y);
 
 function render() {
   const ctx = view.ctx, W = view.w, Hh = view.h;
   const { H, T, V } = World;
   const now = performance.now() / 1000;
+  ctx.setTransform(view.hr, 0, 0, view.hr, 0, 0);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
   const cx = Math.round(view.camX + (Math.random() - 0.5) * FX.shake);
@@ -139,6 +145,7 @@ function render() {
     ctx.arc(isoX(s.x, s.y) - cx, isoY(s.x, s.y, s.z) - cy, s.r, 0, Math.PI * 2);
     ctx.fill();
   }
+  drawAmbience(ctx, cx, cy, W, Hh);
   for (const e of effects) if (e.drawOverlay) e.drawOverlay(ctx, cx, cy);
   drawDomain(ctx, cx, cy, W, Hh);
   drawReticle(ctx, cx, cy);
@@ -157,8 +164,19 @@ function render() {
     ctx.fillRect(Math.round(isoX(s.x, s.y) - cx), Math.round(isoY(s.x, s.y, s.z) - cy), s.s, s.s);
   }
   ctx.globalAlpha = 1;
+  drawAmbienceGlow(ctx, cx, cy, W, Hh);
   drawPlayerAura(ctx);
+
+  // étalonnage froid et violacé, puis vignette
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = '#d8cfee';
+  ctx.fillRect(0, 0, W, Hh);
   ctx.globalCompositeOperation = 'source-over';
+  if (view.vignette) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(view.vignette, 0, 0, W, Hh);
+    ctx.imageSmoothingEnabled = false;
+  }
 
   if (FX.flash > 0.01) {
     ctx.fillStyle = `rgba(${FX.flashRgb},${FX.flash})`;
@@ -236,7 +254,16 @@ function drawObject(ctx, o, cx, cy, W, Hh) {
   if ((o.kind === 'tree' || o.sp === 'torii') && o.x + o.y > Player.x + Player.y && Math.abs(playerSX - sx) < 20 && playerSY < sy && playerSY > sy - o.ay - 4) {
     ctx.globalAlpha = 0.45;
   }
-  ctx.drawImage(o.spr, sx - o.ax + ox, sy - o.ay);
+  // le vent fait ployer arbres et herbes, chacun à son rythme
+  const sway = o.kind === 'tree' ? 0.035 : SWAYING.has(o.sp) ? 0.14 : 0;
+  if (sway && !o.charred) {
+    const k = Math.sin(performance.now() / 650 + o.x * 0.9 + o.y * 0.5) * sway + sway * 0.6;
+    ctx.save();
+    ctx.translate(sx + ox, sy);
+    ctx.transform(1, 0, -k, 1, 0, 0);
+    ctx.drawImage(o.spr, -o.ax, -o.ay);
+    ctx.restore();
+  } else ctx.drawImage(o.spr, sx - o.ax + ox, sy - o.ay);
   ctx.globalAlpha = 1;
   if (o.burn > 0) burningSeen.push([sx, sy, o]);
   if (o.sp === 'lantern') lanternsSeen.push([sx, sy]);
@@ -304,9 +331,13 @@ function drawPlayer(ctx) {
   const sx = Math.round(playerSX), sy = Math.round(playerSY);
   drawShadow(ctx, sx, sy, 7, 0.3);
   if (Player.hurtT > 0 && Math.floor(performance.now() / 60) % 2) return;
-  const spr = playerSprite();
-  const bob = Player.moving ? Math.floor(Player.animT * 9) % 2 : 0;
-  ctx.drawImage(spr, sx - GOJO_AX, sy - (spr.height - 2) + bob);
+  const bob = Player.moving ? (Math.floor(Player.animT * 9) % 2) * 0.5 : Math.floor(performance.now() / 700) % 2 * 0.5;
+  drawGojoSprite(ctx, playerSprite(), sx, sy + bob);
+}
+
+// Les sprites de Gojo sont deux fois plus fins : on les dessine à demi-taille
+function drawGojoSprite(ctx, spr, sx, sy) {
+  ctx.drawImage(spr, sx - GOJO_AX, sy - GOJO_FOOT / GOJO_HR, spr.width / GOJO_HR, spr.height / GOJO_HR);
 }
 
 // Infinité + charge du Violet, dessinés en lumière additive

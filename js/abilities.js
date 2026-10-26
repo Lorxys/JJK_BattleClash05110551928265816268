@@ -79,7 +79,7 @@ class Ghost {
   drawOverlay(ctx, cx, cy) {
     if (this.t < 0) return;
     ctx.globalAlpha = (1 - this.t / 0.35) * 0.5;
-    ctx.drawImage(this.spr, Math.round(isoX(this.x, this.y) - cx - GOJO_AX), Math.round(isoY(this.x, this.y, this.z) - cy - (this.spr.height - 2)));
+    drawGojoSprite(ctx, this.spr, Math.round(isoX(this.x, this.y) - cx), Math.round(isoY(this.x, this.y, this.z) - cy));
     ctx.globalAlpha = 1;
   }
 }
@@ -193,6 +193,7 @@ class BlueOrb {
   }
   implode() {
     const { x, y, z, R } = this;
+    scareBirds(x, y);
     damageTerrain(x, y, 2.8, 1, T_DIRT, 0.6);
     for (const f of flyers) if (Math.hypot(x - f.x, y - f.y, (z - f.z) * 0.5) < R * 1.2) breakFlyer(f, 6);
     for (const p of particles) {
@@ -275,6 +276,7 @@ class RedShot {
 }
 
 function redExplosion(x, y, z) {
+  scareBirds(x, y, 12);
   const R = 4;
   for (const o of World.objects) {
     if (o.dead) continue;
@@ -373,6 +375,7 @@ class PurpleSphere {
 
 function firePurple(x, y, z, dx, dy) {
   effects.push(new PurpleSphere(x, y, z, dx, dy));
+  scareBirds(x, y, 16);
   addShake(12);
   addFlash('210,150,255', 0.6);
   Sfx.purple();

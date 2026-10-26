@@ -22,7 +22,7 @@ body {
 }
 
 body {
-  font-family: 'Silkscreen', monospace;
+  font-family: 'Silkscreen', 'Dela Gothic One', monospace;
   color: var(--text);
   text-transform: uppercase;
   text-shadow: var(--outline);
@@ -388,14 +388,14 @@ body {
 #banner.wave .big { color: var(--pink); }
 #banner.purple .big { color: #d8b8ff; }
 #banner.flash .big {
-  font-family: serif;
+  font-family: 'Dela Gothic One', serif;
   font-size: 44px;
   color: #0a0008;
   text-shadow: 0 0 2px #ff2a3a, 2px 2px 0 #ff2a3a, -2px -2px 0 #ff2a3a, 0 0 18px #ff2a3a;
 }
 #banner.flash .small { color: #ff8090; }
 #banner.domain .big {
-  font-family: serif;
+  font-family: 'Dela Gothic One', serif;
   font-size: clamp(34px, 9vh, 56px);
   letter-spacing: 12px;
   color: #fff;
@@ -412,7 +412,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: rgba(20, 28, 60, 0.45);
+  background: radial-gradient(ellipse at center, rgba(40, 14, 70, 0.35), rgba(8, 4, 20, 0.85));
   text-align: center;
 }
 
@@ -453,4 +453,27 @@ body.portrait #rotate {
 @keyframes turn {
   0%, 20% { transform: rotate(0deg); }
   60%, 100% { transform: rotate(-90deg); }
+}
+
+/* --- Touches japonaises : kanji en gothique épais, comme le titre de l'anime --- */
+.who .kj { font-family: 'Dela Gothic One', serif; font-size: 11px; color: #fff; }
+#overlay .kanji {
+  font-family: 'Dela Gothic One', serif;
+  font-size: clamp(40px, 15vh, 72px);
+  color: #0d0814;
+  letter-spacing: 6px;
+  text-shadow: 0 0 2px #b78cff, 2px 2px 0 #7b4dff, -2px -2px 0 #ff3a6a, 0 0 26px #7b4dff;
+  animation: cursed 2.4s ease-in-out infinite alternate;
+}
+#overlay .kanji:empty { display: none; }
+#banner.wave .big {
+  font-family: 'Dela Gothic One', serif;
+  font-size: 34px;
+  letter-spacing: 6px;
+  color: #ff5a7a;
+  text-shadow: 0 0 2px #1a0a20, 2px 2px 0 #1a0a20, 0 0 18px #c0206a;
+}
+@keyframes cursed {
+  from { filter: drop-shadow(0 0 4px #6a2aff); transform: translateY(1px); }
+  to { filter: drop-shadow(0 0 12px #b03aff); transform: translateY(-1px); }
 }

@@ -21,6 +21,7 @@ function newWorld(seed) {
   resetDomain();
   Object.assign(CD, { blue: 0, red: 0, purple: 0, dash: 0, melee: 0 });
   Object.assign(Melee, { target: null, hits: 0, t: 99, queued: false });
+  initAmbience();
   snapCamera();
 }
 
@@ -29,7 +30,7 @@ function gameOver() {
   Player.charging = false;
   releaseAllTouches();
   Sfx.gameover();
-  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`, 'Touchez pour recommencer');
+  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`, 'Touchez pour recommencer', '敗北');
 }
 
 function restart() {
@@ -60,7 +61,7 @@ function togglePause() {
   if (Game.over || !Game.started) return;
   Game.paused = !Game.paused;
   releaseAllTouches();
-  if (Game.paused) showOverlay('Pause', '', 'Touchez pour reprendre');
+  if (Game.paused) showOverlay('Pause', '', 'Touchez pour reprendre', '休止');
   else hideOverlay();
 }
 
@@ -168,11 +169,12 @@ function showBanner(big, small, cls, dur) {
   bannerT = dur;
 }
 
-function showOverlay(title, sub, hint) {
+function showOverlay(title, sub, hint, kanji = '') {
   const o = document.getElementById('overlay');
   o.querySelector('.big').textContent = title;
   o.querySelector('.small').textContent = sub;
   o.querySelector('.hint').textContent = hint;
+  o.querySelector('.kanji').textContent = kanji;
   o.classList.remove('hidden');
 }
 
@@ -189,6 +191,7 @@ function update(dt) {
   Game.noEnergyT -= dt;
   // le jeu se joue uniquement à l'horizontale
   const portrait = innerHeight > innerWidth;
+  if (!Game.paused && !portrait) updateAmbience(dt);
   if (!Game.started || Game.paused || Game.over || portrait) return;
 
   // arrêt sur image d'une fraction de seconde quand un coup porte
@@ -250,7 +253,7 @@ function init() {
   const seed = params.has('seed') ? parseInt(params.get('seed'), 10) : (Math.random() * 1e9) | 0;
   newWorld(seed);
   if (demo || params.has('sim')) Game.started = true;
-  else showOverlay('JJK BATTLE CLASH', 'Satoru Gojo contre les fléaux', 'Touchez l\'écran pour commencer');
+  else showOverlay('JJK BATTLE CLASH', 'Satoru Gojo contre les fléaux', 'Touchez l\'écran pour commencer', '呪術廻戦');
   // ?sim=30 : avance de 30 s de jeu d'un coup (tests), puis mesure le rendu
   if (params.has('sim')) {
     const t0 = performance.now();

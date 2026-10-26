@@ -104,6 +104,7 @@ function bruteSlam(c) {
   const dx = Player.x - c.x, dy = Player.y - c.y, d = Math.hypot(dx, dy) + 0.01;
   const x = c.x + (dx / d) * 1.2, y = c.y + (dy / d) * 1.2;
   damageTerrain(x, y, 2.2, 1, T_DIRT, 0.8);
+  scareBirds(x, y);
   for (const o of World.objects) {
     if (o.dead) continue;
     const ox = o.x - x, oy = o.y - y, od = Math.hypot(ox, oy) + 0.01;
@@ -365,7 +366,7 @@ function startWave() {
   }
   Waves.queue = q;
   Waves.timer = 5;
-  showBanner(`Vague ${n}`, `${q.length} fléaux approchent`, 'wave', 2.4);
+  showBanner('呪霊襲来', `Vague ${n} · ${q.length} fléaux approchent`, 'wave', 2.4);
   Sfx.wave();
 }
 

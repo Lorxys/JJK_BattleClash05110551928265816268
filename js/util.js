@@ -92,6 +92,80 @@ class Pix {
   has(x, y) {
     return x >= 0 && y >= 0 && x < this.w && y < this.h && this.d[(y * this.w + x) * 4 + 3] > 0;
   }
+  get(x, y) {
+    const i = (y * this.w + x) * 4;
+    return [this.d[i], this.d[i + 1], this.d[i + 2]];
+  }
+  // Contour coloré (« sel-out ») : chaque bord prend une version sombre de la
+  // couleur qu'il entoure, comme le trait brun autour de la peau
+  selout(f = 0.36) {
+    const pts = [];
+    for (let y = 0; y < this.h; y++) {
+      for (let x = 0; x < this.w; x++) {
+        if (this.has(x, y)) continue;
+        for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+          if (this.has(x + dx, y + dy)) {
+            pts.push(x, y, mul(this.get(x + dx, y + dy), f));
+            break;
+          }
+        }
+      }
+    }
+    for (let k = 0; k < pts.length; k += 3) this.set(pts[k], pts[k + 1], pts[k + 2]);
+    return this;
+  }
+  ellipse(cx, cy, rx, ry, c) {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
+        if (dx * dx + dy * dy <= 1) this.set(x, y, c);
+      }
+    }
+    return this;
+  }
+  // Polygone quelconque (test du centre de chaque pixel)
+  poly(pts, c) {
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const [x, y] of pts) {
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+    for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) {
+      for (let x = Math.floor(x0); x <= Math.ceil(x1); x++) {
+        const px = x + 0.5, py = y + 0.5;
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const [xi, yi] = pts[i], [xj, yj] = pts[j];
+          if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+        }
+        if (inside) this.set(x, y, c);
+      }
+    }
+    return this;
+  }
+  line(x0, y0, x1, y1, c) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let k = 0; k <= n; k++) this.set(Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n), c);
+    return this;
+  }
+  rect(x, y, w, h, c) {
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, c);
+    return this;
+  }
+  // Recolore les pixels déjà dessinés qui vérifient test(x, y)
+  shade(test, c, only) {
+    for (let y = 0; y < this.h; y++) {
+      for (let x = 0; x < this.w; x++) {
+        if (!this.has(x, y) || !test(x, y)) continue;
+        if (only) {
+          const o = this.get(x, y);
+          if (o[0] !== only[0] || o[1] !== only[1] || o[2] !== only[2]) continue;
+        }
+        this.set(x, y, c);
+      }
+    }
+    return this;
+  }
   outline(c) {
     const pts = [];
     for (let y = 0; y < this.h; y++) {

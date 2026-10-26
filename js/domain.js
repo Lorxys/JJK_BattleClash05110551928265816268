@@ -33,6 +33,7 @@ function activateDomain() {
   const D = Domain;
   if (D.state !== 'idle' || D.gauge < 100 || Game.over) return;
   Object.assign(D, { state: 'casting', t: 0, x: Player.x, y: Player.y, z: Player.z, gauge: 0 });
+  scareBirds(Player.x, Player.y, 20);
   Player.charging = false;
   addShake(6);
   Sfx.domain();

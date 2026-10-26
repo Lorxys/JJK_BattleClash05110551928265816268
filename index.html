@@ -15,14 +15,14 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Silkscreen&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <canvas id="game"></canvas>
 
   <div id="stats">
-    <div class="who">Satoru Gojo</div>
+    <div class="who"><span class="kj">五条悟</span> Satoru Gojo</div>
     <div id="wave"></div>
     <div class="bar hp"><span>PV</span><b><i></i></b></div>
     <div class="bar ce"><span>Énergie</span><b><i></i></b></div>
@@ -68,6 +68,7 @@
   <div id="banner"><div class="big"></div><div class="small"></div></div>
 
   <div id="overlay" class="hidden">
+    <div class="kanji"></div>
     <div class="big"></div>
     <div class="small"></div>
     <div class="hint"></div>
@@ -80,9 +81,11 @@
 
   <script src="js/util.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/gojo.js"></script>
   <script src="js/world.js"></script>
   <script src="js/fire.js"></script>
   <script src="js/particles.js"></script>
+  <script src="js/ambience.js"></script>
   <script src="js/abilities.js"></script>
   <script src="js/curses.js"></script>
   <script src="js/domain.js"></script>
