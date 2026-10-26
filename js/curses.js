@@ -137,10 +137,10 @@ class SlamWarning {
     const sx = isoX(x, y) - cx, sy = isoY(x, y, groundAt(x, y)) - cy, k = Math.min(1, this.t / 0.8);
     ctx.globalAlpha = 0.25 + 0.35 * k;
     ctx.fillStyle = '#ff3030';
-    pxEllipse(ctx, sx, sy, 2.6 * 22.6 * k, 2.6 * 11.3 * k);
+    pxEllipse(ctx, sx, sy, 2.6 * TILE_RX * k, 2.6 * TILE_RY * k);
     ctx.globalAlpha = 0.8;
     ctx.fillStyle = '#ff6060';
-    pxRing(ctx, sx, sy, 2.6 * 22.6, 2.6 * 11.3);
+    pxRing(ctx, sx, sy, 2.6 * TILE_RX, 2.6 * TILE_RY);
     ctx.globalAlpha = 1;
   }
 }

@@ -24,7 +24,8 @@ function resizeView() {
   // chaque pixel du jeu devient un carré entier de pixels de l'écran
   view.dpr = window.devicePixelRatio || 1;
   const devW = innerWidth * view.dpr, devH = innerHeight * view.dpr;
-  view.scale = Math.max(2, Math.round(devH / 330));
+  // le monde est dessiné WS fois plus grand : la caméra recule d'autant
+  view.scale = Math.max(1, Math.round(devH / (200 * WS)));
   view.w = Math.ceil(devW / view.scale);
   view.h = Math.ceil(devH / view.scale);
   view.canvas.width = view.w;
@@ -38,21 +39,22 @@ function resizeView() {
 }
 
 // Mer à perte de vue : bleu nuit parsemé de petites vagues en tirets
+const SEA_W = 96 * WS, SEA_H = 48 * WS;
 function buildSea() {
-  const r = mulberry32(4242), W = 96, Hh = 48, p = new Pix(W, Hh);
+  const r = mulberry32(4242), W = SEA_W, Hh = SEA_H, p = new Pix(W, Hh);
   const base = toRgb(['#24457f', '#264884', '#22427a']), hl = toRgb(['#3c62a8', '#5a82c8']);
   for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) p.set(x, y, base[0]);
   // zones un peu plus sombres, en amas, pour donner de la profondeur
-  for (let k = 0; k < 18; k++) {
+  for (let k = 0; k < 18 * WS * WS; k++) {
     let x = (r() * W) | 0, y = (r() * Hh) | 0;
-    for (let s = 0; s < 14; s++) {
+    for (let s = 0; s < 14 * WS; s++) {
       p.set((x + W) % W, (y + Hh) % Hh, base[2]);
       if (r() < 0.7) x += r() < 0.5 ? -1 : 1;
       else y += r() < 0.5 ? -1 : 1;
     }
   }
-  for (let k = 0; k < 70; k++) {
-    const x = (r() * W) | 0, y = (r() * Hh) | 0, len = 2 + ((r() * 3) | 0), c = r() < 0.3 ? hl[1] : hl[0];
+  for (let k = 0; k < 70 * WS * WS; k++) {
+    const x = (r() * W) | 0, y = (r() * Hh) | 0, len = 3 + ((r() * 5) | 0), c = r() < 0.3 ? hl[1] : hl[0];
     for (let s = 0; s < len; s++) p.set((x + s) % W, y, c);
   }
   return p.canvas();
@@ -103,19 +105,19 @@ function render() {
   const cx = Math.round(view.camX + (Math.random() - 0.5) * FX.shake);
   const cy = Math.round(view.camY + (Math.random() - 0.5) * FX.shake);
   // la mer suit la caméra et ondule doucement
-  const ox = ((-cx + Math.floor(now * 3)) % 96 + 96) % 96, oy = ((-cy - EDGE_H * HS) % 48 + 48) % 48;
+  const ox = ((-cx + Math.floor(now * 3 * WS)) % SEA_W + SEA_W) % SEA_W, oy = ((-cy - EDGE_H * HS) % SEA_H + SEA_H) % SEA_H;
   ctx.save();
-  ctx.translate(ox - 96, oy - 48);
+  ctx.translate(ox - SEA_W, oy - SEA_H);
   ctx.fillStyle = view.sea;
-  ctx.fillRect(0, 0, W + 192, Hh + 96);
+  ctx.fillRect(0, 0, W + SEA_W * 2, Hh + SEA_H * 2);
   ctx.restore();
   playerSX = isoX(Player.x, Player.y) - cx;
   playerSY = isoY(Player.x, Player.y, Player.z) - cy;
   burningSeen.length = 0;
   lanternsSeen.length = 0;
 
-  const kMin = Math.floor((cy - 140) / 8), kMax = Math.ceil((cy + Hh + 60) / 8);
-  const dMin = Math.floor((cx - 40) / 16), dMax = Math.ceil((cx + W + 40) / 16);
+  const kMin = Math.floor((cy - 140 * WS) / (TH / 2)), kMax = Math.ceil((cy + Hh + 60 * WS) / (TH / 2));
+  const dMin = Math.floor((cx - 40 * WS) / (TW / 2)), dMax = Math.ceil((cx + W + 40 * WS) / (TW / 2));
   const nb = kMax - kMin + 1;
   while (buckets.length < nb) buckets.push([]);
   for (let b = 0; b < nb; b++) buckets[b].length = 0;
@@ -138,25 +140,25 @@ function render() {
       const i = (k + d) >> 1, j = (k - d) >> 1;
       if (i < 0 || j < 0 || i >= MAP_W || j >= MAP_H) continue;
       const idx = j * MAP_W + i, h = H[idx], t = T[idx];
-      const sx = (i - j) * 16 - cx, sy = (i + j) * 8 - h * HS - cy;
-      if (sx < -16 || sx > W + 16 || sy > Hh + 4) continue;
+      const sx = (i - j) * (TW / 2) - cx, sy = (i + j) * (TH / 2) - h * HS - cy;
+      if (sx < -TW / 2 || sx > W + TW / 2 || sy > Hh + TOP_PAD) continue;
       const hl = j + 1 < MAP_H ? H[idx + MAP_W] : EDGE_H;
-      if (h > hl) ctx.drawImage(Gfx.sideL[t][Math.min(h - hl, MAX_DROP)], sx - 16, sy);
+      if (h > hl) ctx.drawImage(Gfx.sideL[t][Math.min(h - hl, MAX_DROP)], sx - TW / 2, sy);
       const hr = i + 1 < MAP_W ? H[idx + 1] : EDGE_H;
-      if (h > hr) ctx.drawImage(Gfx.sideR[t][Math.min(h - hr, MAX_DROP)], sx - 16, sy);
+      if (h > hr) ctx.drawImage(Gfx.sideR[t][Math.min(h - hr, MAX_DROP)], sx - TW / 2, sy);
       const tops = Gfx.tops[t];
-      ctx.drawImage(tops[(V[idx] + (t === T_WATER ? waterFrame : 0)) % tops.length], sx - 16, sy - 4);
+      ctx.drawImage(tops[(V[idx] + (t === T_WATER ? waterFrame : 0)) % tops.length], sx - TW / 2, sy - TOP_PAD);
       // l'herbe voisine déborde sur le sable en lisière irrégulière
       if (t === T_SAND) {
         const nb = [i > 0 ? idx - 1 : -1, j > 0 ? idx - MAP_W : -1, i + 1 < MAP_W ? idx + 1 : -1, j + 1 < MAP_H ? idx + MAP_W : -1];
         for (let d = 0; d < 4; d++) {
           const n = nb[d];
-          if (n >= 0 && H[n] === h && (T[n] === T_GRASS || T[n] === T_FLOWER)) ctx.drawImage(Gfx.fringe[d][V[idx] % 3], sx - 16, sy - 4);
+          if (n >= 0 && H[n] === h && (T[n] === T_GRASS || T[n] === T_FLOWER)) ctx.drawImage(Gfx.fringe[d][V[idx] % 3], sx - TW / 2, sy - TOP_PAD);
         }
       }
       if (h !== 0 && t !== T_WATER) {
         ctx.globalAlpha = h < 0 ? Math.min(0.55, -h * 0.1) : h * 0.05;
-        ctx.drawImage(h < 0 ? Gfx.dark : Gfx.light, sx - 16, sy);
+        ctx.drawImage(h < 0 ? Gfx.dark : Gfx.light, sx - TW / 2, sy);
         ctx.globalAlpha = 1;
       }
     }
@@ -183,7 +185,7 @@ function render() {
   for (const e of effects) if (e.drawGlow) e.drawGlow(ctx, cx, cy);
   for (const s of cshots) {
     const sx = isoX(s.x, s.y) - cx, sy = isoY(s.x, s.y, s.z) - cy;
-    drawGlowOrb(ctx, sx, sy, 2, 9, 'rgba(255,170,230,1)', s.stop > 0 ? 'rgba(120,220,255,0.8)' : 'rgba(170,30,120,0.85)');
+    drawGlowOrb(ctx, sx, sy, 2 * WS, 9 * WS, 'rgba(255,170,230,1)', s.stop > 0 ? 'rgba(120,220,255,0.8)' : 'rgba(170,30,120,0.85)');
   }
   for (const s of sparks) {
     ctx.globalAlpha = s.life / s.max;
@@ -206,17 +208,17 @@ function drawFires(ctx, cx, cy, W, Hh, now) {
   for (const idx of Fire.list) {
     if (Fire.F[idx] <= 0) continue;
     const i = idx % MAP_W, j = (idx / MAP_W) | 0;
-    const sx = (i - j) * 16 - cx, sy = (i + j) * 8 - World.H[idx] * HS - cy + 8;
-    if (sx < -20 || sx > W + 20 || sy < -20 || sy > Hh + 20) continue;
+    const sx = (i - j) * (TW / 2) - cx, sy = (i + j) * (TH / 2) - World.H[idx] * HS - cy + TH / 2;
+    if (sx < -20 * WS || sx > W + 20 * WS || sy < -20 * WS || sy > Hh + 20 * WS) continue;
     ctx.globalAlpha = 0.5;
-    ctx.drawImage(Gfx.fireGlow, sx - 16, sy - 20);
+    ctx.drawImage(Gfx.fireGlow, sx - 16 * WS, sy - 20 * WS);
     ctx.globalAlpha = 1;
-    ctx.drawImage(Gfx.flames[(ff + idx) % 3], sx - 4 + ((idx * 7) % 9) - 4, sy - 11);
+    ctx.drawImage(Gfx.flames[(ff + idx) % 3], sx + (((idx * 7) % 9) - 8) * WS, sy - 11 * WS);
   }
   for (const [sx, sy, o] of burningSeen) {
-    ctx.drawImage(Gfx.fireGlow, sx - 16, sy - o.ay * 0.6 - 16);
+    ctx.drawImage(Gfx.fireGlow, sx - 16 * WS, sy - o.ay * 0.6 - 16 * WS);
     for (let n = 0; n < 3; n++) {
-      ctx.drawImage(Gfx.flames[(ff + n) % 3], sx - 4 + (n - 1) * 8, sy - o.ay * (0.45 + n * 0.12) - 6);
+      ctx.drawImage(Gfx.flames[(ff + n) % 3], sx + (-4 + (n - 1) * 8) * WS, sy - o.ay * (0.45 + n * 0.12) - 6 * WS);
     }
   }
   for (const [sx, sy] of lanternsSeen) {
@@ -226,7 +228,7 @@ function drawFires(ctx, cx, cy, W, Hh, now) {
   ctx.globalAlpha = 1;
   for (const f of flyers) {
     if (!f.burning) continue;
-    ctx.drawImage(Gfx.flames[ff % 3], Math.round(isoX(f.x, f.y) - cx) - 4, Math.round(isoY(f.x, f.y, f.z) - cy) - 8);
+    ctx.drawImage(Gfx.flames[ff % 3], Math.round(isoX(f.x, f.y) - cx) - 4 * WS, Math.round(isoY(f.x, f.y, f.z) - cy) - 8 * WS);
   }
 }
 
@@ -264,11 +266,11 @@ function drawShadow(ctx, x, y, rx, a = 0.22) {
 
 function drawObject(ctx, o, cx, cy, W, Hh) {
   const sx = Math.round(isoX(o.x, o.y) - cx), sy = Math.round(isoY(o.x, o.y, groundAt(o.x, o.y)) - cy);
-  if (sx < -40 || sx > W + 40 || sy < -2 || sy > Hh + 70) return;
+  if (sx < -40 * WS || sx > W + 40 * WS || sy < -2 || sy > Hh + 70 * WS) return;
   drawShadow(ctx, sx, sy, o.shw);
-  const ox = o.shake > 0 ? Math.round(Math.sin(performance.now() / 16) * 2) : 0;
+  const ox = o.shake > 0 ? Math.round(Math.sin(performance.now() / 16) * 2 * WS) : 0;
   // un arbre devant Gojo devient transparent pour qu'on le voie toujours
-  if ((o.kind === 'tree' || o.sp === 'torii') && o.x + o.y > Player.x + Player.y && Math.abs(playerSX - sx) < 20 && playerSY < sy && playerSY > sy - o.ay - 4) {
+  if ((o.kind === 'tree' || o.sp === 'torii') && o.x + o.y > Player.x + Player.y && Math.abs(playerSX - sx) < 20 * WS && playerSY < sy && playerSY > sy - o.ay - 4 * WS) {
     ctx.globalAlpha = 0.45;
   }
   ctx.drawImage(o.spr, sx - o.ax + ox, sy - o.ay);
@@ -279,9 +281,9 @@ function drawObject(ctx, o, cx, cy, W, Hh) {
 
 function drawFlyer(ctx, f, cx, cy, W, Hh) {
   const sx = isoX(f.x, f.y) - cx, sy = isoY(f.x, f.y, f.z) - cy;
-  if (sx < -60 || sx > W + 60 || sy < -60 || sy > Hh + 60) return;
+  if (sx < -60 * WS || sx > W + 60 * WS || sy < -60 * WS || sy > Hh + 60 * WS) return;
   const g = groundAt(f.x, f.y);
-  if (g > -50) drawShadow(ctx, Math.round(sx), Math.round(isoY(f.x, f.y, g) - cy), 8, 0.15);
+  if (g > -50) drawShadow(ctx, Math.round(sx), Math.round(isoY(f.x, f.y, g) - cy), 8 * WS, 0.15);
   ctx.save();
   ctx.translate(Math.round(sx), Math.round(sy));
   ctx.rotate(f.ang);
@@ -293,7 +295,7 @@ function drawCurse(ctx, c, cx, cy, W, Hh) {
   const def = CURSE_TYPES[c.type];
   const art = Gfx.curses[c.type][Math.floor(c.t * (c.type === 'brute' ? 3 : 5)) % 2];
   const sx = Math.round(isoX(c.x, c.y) - cx), sy = Math.round(isoY(c.x, c.y, c.z) - cy);
-  if (sx < -40 || sx > W + 40 || sy < -10 || sy > Hh + 60) return;
+  if (sx < -40 * WS || sx > W + 40 * WS || sy < -10 * WS || sy > Hh + 60 * WS) return;
   const g = groundAt(c.x, c.y);
   if (g > -50) drawShadow(ctx, sx, Math.round(isoY(c.x, c.y, g) - cy), def.shadow, 0.3);
   const flash = c.hitT > 0 || (c.frozen && Math.floor(c.t * 12) % 4 === 0) || (c.wind > 0 && Math.floor(c.t * 16) % 2 === 0);
@@ -304,7 +306,7 @@ function drawCurse(ctx, c, cx, cy, W, Hh) {
     const rise = Math.round((c.spawnT / 0.7) * art.c.height);
     ctx.save();
     ctx.beginPath();
-    ctx.rect(sx - 40, sy - 80, 80, 80);
+    ctx.rect(sx - 40 * WS, sy - 80 * WS, 80 * WS, 80 * WS);
     ctx.clip();
     ctx.drawImage(spr, sx - art.ax, top + rise);
     ctx.restore();
@@ -317,27 +319,29 @@ function drawCurse(ctx, c, cx, cy, W, Hh) {
   if (c.stunT > 0) {
     const t = performance.now() / 160;
     for (let n = 0; n < 3; n++) {
-      const a = t + (n * Math.PI * 2) / 3, x = Math.round(sx + Math.cos(a) * 7), y = Math.round(top - 7 + Math.sin(a) * 2);
+      const a = t + (n * Math.PI * 2) / 3, x = Math.round(sx + Math.cos(a) * 7 * WS), y = Math.round(top - 7 * WS + Math.sin(a) * 2 * WS);
       ctx.fillStyle = '#1a1426';
-      ctx.fillRect(x - 2, y - 1, 5, 3);
-      ctx.fillRect(x - 1, y - 2, 3, 5);
+      ctx.fillRect(x - 3, y - 1, 7, 3);
+      ctx.fillRect(x - 1, y - 3, 3, 7);
+      ctx.fillRect(x - 2, y - 2, 5, 5);
       ctx.fillStyle = '#ffe08a';
-      ctx.fillRect(x - 1, y, 3, 1);
-      ctx.fillRect(x, y - 1, 1, 3);
+      ctx.fillRect(x - 2, y, 5, 1);
+      ctx.fillRect(x, y - 2, 1, 5);
+      ctx.fillRect(x - 1, y - 1, 3, 3);
     }
   }
   if (c.hp < c.max) {
-    const w = c.type === 'brute' ? 24 : 12, y = top - 4;
+    const w = (c.type === 'brute' ? 24 : 12) * WS, y = top - 4 * WS;
     ctx.fillStyle = '#0b0b14';
-    ctx.fillRect(sx - w / 2 - 1, y - 1, w + 2, 3);
+    ctx.fillRect(sx - w / 2 - 1, y - 1, w + 2, 4);
     ctx.fillStyle = '#e04050';
-    ctx.fillRect(sx - w / 2, y, Math.max(0, Math.round((w * c.hp) / c.max)), 1);
+    ctx.fillRect(sx - w / 2, y, Math.max(0, Math.round((w * c.hp) / c.max)), 2);
   }
 }
 
 function drawPlayer(ctx) {
   const sx = Math.round(playerSX), sy = Math.round(playerSY);
-  drawShadow(ctx, sx, sy, 7, 0.3);
+  drawShadow(ctx, sx, sy, 13, 0.3);
   if (Player.hurtT > 0 && Math.floor(performance.now() / 60) % 2) return;
   drawGojoSprite(ctx, playerSprite(), sx, sy);
 }
@@ -349,20 +353,20 @@ function drawGojoSprite(ctx, spr, sx, sy) {
 
 // Infinité + charge du Violet, dessinés en lumière additive
 function drawPlayerAura(ctx) {
-  const sx = playerSX, sy = playerSY - 24;
+  const sx = playerSX, sy = playerSY - 40;
   if (Player.inf > 0.03) {
     ctx.fillStyle = `rgba(160,215,255,${0.35 * Player.inf})`;
-    pxRing(ctx, sx, sy, 22, 26 + Math.round(Math.sin(performance.now() / 120)));
+    pxRing(ctx, sx, sy, 34, 46 + Math.round(Math.sin(performance.now() / 120)));
   }
   if (Player.charging) {
     const t = performance.now() / 1000;
-    const k = Math.min(1, Player.chargeT / PURPLE_CHARGE), off = 18 * (1 - k);
+    const k = Math.min(1, Player.chargeT / PURPLE_CHARGE), off = 18 * WS * (1 - k);
     if (k < 1) {
-      drawGlowOrb(ctx, sx - off, sy - 4, 3, 10, 'rgba(230,245,255,1)', 'rgba(60,140,255,0.9)');
-      drawGlowOrb(ctx, sx + off, sy - 4, 3, 10, 'rgba(255,235,225,1)', 'rgba(255,60,40,0.9)');
+      drawGlowOrb(ctx, sx - off, sy - 4 * WS, 3 * WS, 10 * WS, 'rgba(230,245,255,1)', 'rgba(60,140,255,0.9)');
+      drawGlowOrb(ctx, sx + off, sy - 4 * WS, 3 * WS, 10 * WS, 'rgba(255,235,225,1)', 'rgba(255,60,40,0.9)');
     } else {
       const p = Math.sin(t * 30) * 2;
-      drawGlowOrb(ctx, sx, sy - 4, 6 + p, 20 + p, 'rgba(255,240,255,1)', 'rgba(160,70,255,0.9)');
+      drawGlowOrb(ctx, sx, sy - 4 * WS, 6 * WS + p, 20 * WS + p, 'rgba(255,240,255,1)', 'rgba(160,70,255,0.9)');
     }
   }
 }
@@ -373,6 +377,6 @@ function drawReticle(ctx, cx, cy) {
   if (!inMap(i, j)) return;
   const h = World.H[j * MAP_W + i];
   ctx.globalAlpha = 0.45 + 0.25 * Math.sin(performance.now() / 160);
-  ctx.drawImage(Gfx.reticle, (i - j) * 16 - cx - 16, (i + j) * 8 - h * HS - cy);
+  ctx.drawImage(Gfx.reticle, (i - j) * (TW / 2) - cx - TW / 2, (i + j) * (TH / 2) - h * HS - cy);
   ctx.globalAlpha = 1;
 }

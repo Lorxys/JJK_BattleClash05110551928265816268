@@ -62,7 +62,7 @@ class Shockwave {
     const k = this.t / this.dur, r = this.R * (0.2 + 0.8 * Math.sqrt(k));
     ctx.globalAlpha = (1 - k) * 0.9;
     ctx.fillStyle = this.color;
-    pxRing(ctx, isoX(this.x, this.y) - cx, isoY(this.x, this.y, this.z) - cy, r * 22.6, r * 11.3, 2);
+    pxRing(ctx, isoX(this.x, this.y) - cx, isoY(this.x, this.y, this.z) - cy, r * TILE_RX, r * TILE_RY, 2 * WS);
     ctx.globalAlpha = 1;
   }
 }
@@ -222,11 +222,11 @@ class BlueOrb {
     const k = Math.min(1, this.t / 0.3);
     const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy;
     const pulse = Math.sin(this.t * 25) * 1.2;
-    drawGlowOrb(ctx, sx, sy, (5 + pulse) * k, 26 * k, 'rgba(235,248,255,1)', 'rgba(60,150,255,0.85)');
+    drawGlowOrb(ctx, sx, sy, (5 + pulse) * WS * k, 26 * WS * k, 'rgba(235,248,255,1)', 'rgba(60,150,255,0.85)');
     ctx.fillStyle = '#9fd4ff';
     for (let n = 0; n < 18; n++) {
-      const a = -this.t * 9 + (n * Math.PI) / 9, rr = (12 + (n % 3) * 5) * k * (1 - (this.t / this.dur) * 0.4);
-      ctx.fillRect(Math.round(sx + Math.cos(a) * rr), Math.round(sy + Math.sin(a) * rr * 0.5), 1, 1);
+      const a = -this.t * 9 + (n * Math.PI) / 9, rr = (12 + (n % 3) * 5) * WS * k * (1 - (this.t / this.dur) * 0.4);
+      ctx.fillRect(Math.round(sx + Math.cos(a) * rr), Math.round(sy + Math.sin(a) * rr * 0.5), WS, WS);
     }
   }
 }
@@ -271,7 +271,7 @@ class RedShot {
   }
   drawGlow(ctx, cx, cy) {
     const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy;
-    drawGlowOrb(ctx, sx, sy, 4, 14, 'rgba(255,240,220,1)', 'rgba(255,60,40,0.9)');
+    drawGlowOrb(ctx, sx, sy, 4 * WS, 14 * WS, 'rgba(255,240,220,1)', 'rgba(255,60,40,0.9)');
   }
 }
 
@@ -363,7 +363,7 @@ class PurpleSphere {
     let k = Math.min(1, this.t / 0.15);
     if (this.end >= 0) k *= 1 - this.end / 0.6;
     const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy;
-    const r = this.R * 16 * k;
+    const r = this.R * 16 * WS * k;
     drawGlowOrb(ctx, sx, sy, r * 0.75, r * 1.5, 'rgba(255,235,255,1)', 'rgba(150,60,255,0.9)');
     ctx.fillStyle = '#f0d8ff';
     for (let n = 0; n < 40; n++) {
@@ -511,10 +511,10 @@ class BlackFlash {
   drawOverlay(ctx, cx, cy) {
     const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy, k = 1 - this.t / 0.35;
     for (let b = 0; b < 7; b++) {
-      const a = rnd(0, Math.PI * 2), len = rnd(16, 40) * k;
+      const a = rnd(0, Math.PI * 2), len = rnd(16, 40) * WS * k;
       const pts = [[sx, sy]];
       for (let s = 1; s <= 5; s++) {
-        pts.push([sx + Math.cos(a) * (len * s) / 5 + rnd(-4, 4), sy + Math.sin(a) * (len * s) / 10 + rnd(-4, 4)]);
+        pts.push([sx + Math.cos(a) * (len * s) / 5 + rnd(-4, 4) * WS, sy + Math.sin(a) * (len * s) / 10 + rnd(-4, 4) * WS]);
       }
       ctx.globalAlpha = k;
       for (const [w, c] of [[3, '#08000a'], [1, '#ff2a3a']]) {

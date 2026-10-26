@@ -3,9 +3,12 @@
 // ---------------------------------------------------------------------------
 // Constantes du monde isométrique (en pixels de la résolution interne)
 // ---------------------------------------------------------------------------
-const TW = 32;            // largeur d'une tuile
-const TH = 16;            // hauteur d'une tuile
-const HS = 8;             // pixels par unité de hauteur
+const WS = 2;             // échelle du monde : chaque élément est dessiné WS fois plus grand qu'à l'origine
+const TW = 32 * WS;       // largeur d'une tuile
+const TH = 16 * WS;       // hauteur d'une tuile
+const HS = 8 * WS;        // pixels par unité de hauteur
+// demi-axes à l'écran d'un cercle de rayon 1 tuile posé au sol
+const TILE_RX = TW * 0.707, TILE_RY = TH * 0.707;
 const MAP_W = 128;
 const MAP_H = 128;
 const MIN_H = -5;         // profondeur max d'un cratère

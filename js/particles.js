@@ -30,7 +30,7 @@ function spawnDebris(x, y, z, count, colors, power, up = 1) {
   for (let k = 0; k < count; k++) {
     const a = Math.random() * Math.PI * 2, s = Math.random() * power;
     spawnParticle(x + rnd(-0.3, 0.3), y + rnd(-0.3, 0.3), z + rnd(0, 0.5), Math.cos(a) * s, Math.sin(a) * s,
-      rnd(0.4, 1) * power * up * 1.6, pick(colors), Math.random() < 0.3 ? 2 : 1, rnd(3, 7));
+      rnd(0.4, 1) * power * up * 1.6, pick(colors), Math.random() < 0.3 ? 2 * WS - 1 : WS, rnd(3, 7));
   }
 }
 
@@ -43,7 +43,7 @@ function spawnSpark(x, y, z, vx, vy, vz, c, life = 0.5, s = 1) {
 function spawnSmoke(x, y, z, steam = false) {
   if (smokes.length >= MAX_SMOKES) return;
   const life = rnd(1.2, 2.2);
-  smokes.push({ x, y, z, r: rnd(1.5, 3), life, max: life, vz: rnd(1, 2), c: steam ? '225,232,240' : '48,44,42' });
+  smokes.push({ x, y, z, r: rnd(1.5, 3) * WS, life, max: life, vz: rnd(1, 2), c: steam ? '225,232,240' : '48,44,42' });
 }
 
 function updateParticles(dt) {

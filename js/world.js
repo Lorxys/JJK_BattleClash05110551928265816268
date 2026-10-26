@@ -73,7 +73,7 @@ function objectAt(i, j) {
 function addObject(kind, sp, x, y, art) {
   const s = OBJ_STATS[sp];
   World.objects.push({
-    kind, sp, x, y, spr: art.c, ax: art.ax, ay: art.ay, hp: s.hp, rad: s.rad, shw: s.shw,
+    kind, sp, x, y, spr: art.c, ax: art.ax, ay: art.ay, hp: s.hp, rad: s.rad, shw: s.shw * WS,
     shake: 0, burn: 0, charred: false, dead: false,
   });
 }

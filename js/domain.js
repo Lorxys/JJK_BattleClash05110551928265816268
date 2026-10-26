@@ -85,7 +85,7 @@ function drawDomain(ctx, cx, cy, W, Hh) {
   const R = domainRadius();
   if (R < 0.1) return;
   const sx = isoX(D.x, D.y) - cx, sy = isoY(D.x, D.y, D.z) - cy;
-  const rx = R * 22.6, ry = R * 11.3, now = performance.now() / 1000;
+  const rx = R * TILE_RX, ry = R * TILE_RY, now = performance.now() / 1000;
 
   ctx.save();
   domainPath(ctx, sx, sy, rx, ry);

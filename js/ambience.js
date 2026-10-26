@@ -75,7 +75,7 @@ function updateAmbience(dt) {
     if (c.dead || c.spawnT > 0 || far(c, 20)) continue;
     const big = c.type === 'brute' ? 2 : 1;
     if (Math.random() < dt * 5 * big) {
-      Amb.wisps.push({ x: c.x + rnd(-0.3, 0.3), y: c.y + rnd(-0.3, 0.3), z: c.z + rnd(0, 1.5 * big), r: rnd(2, 3.5) * big, life: 1, max: 1 });
+      Amb.wisps.push({ x: c.x + rnd(-0.3, 0.3), y: c.y + rnd(-0.3, 0.3), z: c.z + rnd(0, 1.5 * big), r: rnd(2, 3.5) * WS * big, life: 1, max: 1 });
     }
     if (Math.random() < dt * 3 * big) {
       Amb.motes.push({ x: c.x + rnd(-0.5, 0.5), y: c.y + rnd(-0.5, 0.5), z: c.z + rnd(0, 2), vz: rnd(1, 2), life: 1.2, max: 1.2, cyan: false });
