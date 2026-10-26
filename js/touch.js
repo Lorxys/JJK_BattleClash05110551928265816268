@@ -6,12 +6,12 @@
 // plus proche ; glissé, il vise dans la direction du glissement.
 // ---------------------------------------------------------------------------
 const Touch = {
-  used: false,        // la dernière entrée vient d'un doigt (pas de la souris)
   joy: null,          // { id, x0, y0 } doigt qui tient le joystick
   ux: 0,
   uy: 0,
   held: new Map(),    // pointerId -> { which, el, x0, y0, dx, dy, consumed }
 };
+const Aim = { x: MAP_W / 2, y: MAP_H / 2, on: false }; // point visé, affiché par le réticule
 const JOY_R = 50;     // rayon du joystick en pixels CSS
 const AIM_DRAG = 14;  // en dessous, c'est un simple appui : visée automatique
 
@@ -48,8 +48,8 @@ function aimFor(h) {
 }
 
 function setAim([x, y]) {
-  mouse.wx = x;
-  mouse.wy = y;
+  Aim.x = x;
+  Aim.y = y;
 }
 
 function heldSpells() {
@@ -59,7 +59,6 @@ function heldSpells() {
 function onButtonDown(e) {
   e.preventDefault();
   e.stopPropagation();
-  Touch.used = true;
   Sfx.init();
   if (!Game.started) return startGame();
   if (Game.paused || Game.over) return;
@@ -71,7 +70,7 @@ function onButtonDown(e) {
 
   if (which === 'dash') {
     setAim(autoTarget());
-    dash(mouse.wx, mouse.wy);
+    dash(Aim.x, Aim.y);
   } else if (which === 'domain') {
     activateDomain();
   } else if (which === 'purple' || heldSpells().some((o) => o !== h && o.which !== which)) {
@@ -79,7 +78,7 @@ function onButtonDown(e) {
     for (const o of heldSpells()) o.consumed = true;
     startPurple();
   }
-  mouse.inside = which === 'blue' || which === 'red' || which === 'purple';
+  Aim.on = which === 'blue' || which === 'red' || which === 'purple';
   setAim(aimFor(h));
 }
 
@@ -102,7 +101,7 @@ function onButtonUp(e) {
   if (Player.charging) releasePurple(target[0], target[1]);
   else if (!h.consumed && h.which === 'blue') castBlue(target[0], target[1]);
   else if (!h.consumed && h.which === 'red') castRed(target[0], target[1]);
-  if (!heldSpells().length) mouse.inside = false;
+  if (!heldSpells().length) Aim.on = false;
 }
 
 // --- Joystick ---------------------------------------------------------------------
@@ -122,9 +121,7 @@ function restJoystick() {
 }
 
 function onCanvasDown(e) {
-  if (e.pointerType === 'mouse') return;
   e.preventDefault();
-  Touch.used = true;
   Sfx.init();
   if (!Game.started) return startGame();
   if (e.clientX < innerWidth * 0.5 && !Touch.joy) {
@@ -163,12 +160,10 @@ function releaseAllTouches() {
   restJoystick();
   for (const h of Touch.held.values()) h.el.classList.remove('pressed');
   Touch.held.clear();
-  mouse.inside = false;
+  Aim.on = false;
 }
 
 function initTouch() {
-  if (!IS_TOUCH) return;
-  document.body.classList.add('touch');
   const canvas = document.getElementById('game');
   canvas.addEventListener('pointerdown', onCanvasDown);
   addEventListener('pointermove', onCanvasMove);
@@ -184,6 +179,13 @@ function initTouch() {
     e.preventDefault();
     e.stopPropagation();
     togglePause();
+  });
+  const sound = document.getElementById('sound-btn');
+  sound.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    Sfx.init();
+    sound.classList.toggle('off', Sfx.toggleMute());
   });
   // empêche le zoom par pincement et le menu du clic long sur iOS
   document.addEventListener('gesturestart', (e) => e.preventDefault());

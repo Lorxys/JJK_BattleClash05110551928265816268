@@ -9,8 +9,8 @@ const sparks = [];
 const smokes = [];
 const flyers = [];
 // plafonds plus bas sur mobile pour garder un jeu fluide
-const MAX_PARTICLES = IS_TOUCH ? 2500 : 4500;
-const MAX_SPARKS = IS_TOUCH ? 1800 : 3000;
+const MAX_PARTICLES = 2500;
+const MAX_SPARKS = 1800;
 const MAX_SMOKES = 350;
 
 const BLUE_SPARKS = ['#bfe4ff', '#6fb8ff', '#3a7dff', '#ffffff'];

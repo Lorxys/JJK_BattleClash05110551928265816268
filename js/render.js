@@ -5,7 +5,7 @@
 // profondeur, puis une couche additive pour les effets lumineux.
 // ---------------------------------------------------------------------------
 // scale = nombre de pixels physiques de l'écran par pixel du jeu
-const view = { canvas: null, ctx: null, scale: 3, userScale: 0, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null };
+const view = { canvas: null, ctx: null, scale: 3, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null };
 const buckets = [];
 const burningSeen = [];  // arbres en feu visibles, pour dessiner leurs flammes
 const lanternsSeen = []; // lanternes visibles, pour leur halo
@@ -23,7 +23,7 @@ function resizeView() {
   // on raisonne en pixels physiques pour rester net sur les écrans haute densité
   view.dpr = window.devicePixelRatio || 1;
   const devW = innerWidth * view.dpr, devH = innerHeight * view.dpr;
-  view.scale = view.userScale || Math.max(2, Math.round(devH / 330));
+  view.scale = Math.max(2, Math.round(devH / 330));
   view.w = Math.ceil(devW / view.scale);
   view.h = Math.ceil(devH / view.scale);
   view.canvas.width = view.w;
@@ -57,19 +57,6 @@ function updateCamera(dt) {
   const [tx, ty] = camTarget(), k = 1 - Math.exp(-dt * 7);
   view.camX += (tx - view.camX) * k;
   view.camY += (ty - view.camY) * k;
-}
-
-// Pixel écran (résolution interne) -> point du sol visé
-function screenToWorld(mx, my) {
-  const a = (mx + view.camX) / 16;
-  let h = 0, wx = 0, wy = 0;
-  for (let it = 0; it < 3; it++) {
-    const b = (my + view.camY + h * HS) / 8;
-    wx = (a + b) / 2;
-    wy = (b - a) / 2;
-    h = Math.max(groundAt(wx, wy), MIN_H);
-  }
-  return [wx, wy];
 }
 
 function playerSprite() {
@@ -332,8 +319,8 @@ function drawPlayerAura(ctx) {
 }
 
 function drawReticle(ctx, cx, cy) {
-  if (!mouse.inside) return;
-  const i = Math.floor(mouse.wx), j = Math.floor(mouse.wy);
+  if (!Aim.on) return;
+  const i = Math.floor(Aim.x), j = Math.floor(Aim.y);
   if (!inMap(i, j)) return;
   const h = World.H[j * MAP_W + i];
   ctx.globalAlpha = 0.45 + 0.25 * Math.sin(performance.now() / 160);

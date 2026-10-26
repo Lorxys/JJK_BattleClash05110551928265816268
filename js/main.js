@@ -1,14 +1,11 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Entrées, boucle de jeu, interface
+// Boucle de jeu et interface (les commandes tactiles sont dans touch.js)
 // ---------------------------------------------------------------------------
-const keys = new Set();
-const mouse = { x: 0, y: 0, wx: MAP_W / 2, wy: MAP_H / 2, inside: false };
 const params = new URLSearchParams(location.search);
 const demo = params.has('demo');
 const Game = { started: false, over: false, paused: false, noEnergyT: 0 };
-const TAP = IS_TOUCH ? 'Touchez l\'écran' : 'Cliquez ou appuyez sur une touche';
 let last = 0;
 
 function newWorld(seed) {
@@ -29,10 +26,9 @@ function newWorld(seed) {
 function gameOver() {
   Game.over = true;
   Player.charging = false;
-  if (IS_TOUCH) releaseAllTouches();
+  releaseAllTouches();
   Sfx.gameover();
-  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`,
-    IS_TOUCH ? 'Touchez pour recommencer' : 'Entrée : recommencer');
+  showOverlay('Gojo est tombé…', `Vague ${Waves.n} · ${Waves.kills} fléaux exorcisés`, 'Touchez pour recommencer');
 }
 
 function restart() {
@@ -42,14 +38,14 @@ function restart() {
   Sfx.music('main');
 }
 
-// Premier geste du joueur : débloque le son et, sur mobile, passe en plein écran
+// Premier toucher : débloque le son et passe en plein écran à l'horizontale
 function startGame() {
   if (Game.started) return;
   Game.started = true;
   hideOverlay();
   Sfx.init();
   Sfx.music('main');
-  if (IS_TOUCH) goLandscapeFullscreen();
+  goLandscapeFullscreen();
 }
 
 function onOverlayTap(e) {
@@ -59,115 +55,11 @@ function onOverlayTap(e) {
   else if (Game.paused) togglePause();
 }
 
-// --- Bleu + Rouge -----------------------------------------------------------------
-// Appuyer sur les deux presque en même temps (ou sur l'un en tenant l'autre)
-// prépare le Violet. Sinon, chaque touche lance son sort après un court délai.
-const combo = { blue: false, red: false, pending: null, t: 0 };
-
-function pressSpell(which) {
-  if (Game.over || Game.paused) return;
-  combo[which] = true;
-  if (combo[which === 'blue' ? 'red' : 'blue']) {
-    combo.pending = null;
-    startPurple();
-    return;
-  }
-  combo.pending = which;
-  combo.t = 0.13;
-}
-
-function releaseSpell(which) {
-  combo[which] = false;
-  if (Player.charging) releasePurple(mouse.wx, mouse.wy);
-}
-
-function updateCombo(dt) {
-  if (!combo.pending) return;
-  combo.t -= dt;
-  if (combo.t > 0) return;
-  const which = combo.pending;
-  combo.pending = null;
-  if (which === 'blue') castBlue(mouse.wx, mouse.wy);
-  else castRed(mouse.wx, mouse.wy);
-}
-
-// --- Entrées (codes physiques : ZQSD en AZERTY = WASD en QWERTY) ---------------
-const PREVENT = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
-
-addEventListener('keydown', (e) => {
-  Sfx.init();
-  if (PREVENT.has(e.code)) e.preventDefault();
-  keys.add(e.code);
-  if (e.repeat) return;
-  if (!Game.started) {
-    startGame();
-    return;
-  }
-  if (Game.over) {
-    if (e.code === 'Enter' || e.code === 'NumpadEnter') restart();
-    return;
-  }
-  switch (e.code) {
-    case 'KeyQ': pressSpell('blue'); break;      // touche A en AZERTY
-    case 'KeyE': pressSpell('red'); break;
-    case 'KeyF': activateDomain(); break;
-    case 'Space':
-    case 'ShiftLeft':
-    case 'ShiftRight': if (!Game.paused) dash(mouse.wx, mouse.wy); break;
-    case 'Escape': togglePause(); break;
-    case 'KeyH': document.getElementById('help').classList.toggle('hidden'); break;
-    case 'KeyM': document.getElementById('mute').textContent = Sfx.toggleMute() ? 'Son coupé (M)' : ''; break;
-    case 'KeyN': newWorld((Math.random() * 1e9) | 0); break;
-  }
-});
-
-addEventListener('keyup', (e) => {
-  keys.delete(e.code);
-  if (e.code === 'KeyQ') releaseSpell('blue');
-  else if (e.code === 'KeyE') releaseSpell('red');
-});
-
-addEventListener('blur', () => {
-  keys.clear();
-  combo.blue = combo.red = false;
-  Player.charging = false;
-});
-
-// Souris (les doigts sont gérés dans touch.js)
-addEventListener('pointermove', (e) => {
-  if (e.pointerType !== 'mouse') return;
-  Touch.used = false;
-  mouse.x = (e.clientX * view.dpr) / view.scale;
-  mouse.y = (e.clientY * view.dpr) / view.scale;
-  mouse.inside = true;
-});
-document.addEventListener('mouseleave', () => { mouse.inside = false; });
-
-addEventListener('pointerdown', (e) => {
-  if (e.pointerType !== 'mouse' || e.target.closest('#overlay')) return;
-  Sfx.init();
-  if (!Game.started) return startGame();
-  if (e.button === 0) pressSpell('blue');
-  else if (e.button === 2) pressSpell('red');
-});
-addEventListener('pointerup', (e) => {
-  if (e.pointerType !== 'mouse') return;
-  if (e.button === 0) releaseSpell('blue');
-  else if (e.button === 2) releaseSpell('red');
-});
-addEventListener('contextmenu', (e) => e.preventDefault());
-
-addEventListener('wheel', (e) => {
-  e.preventDefault();
-  view.userScale = clamp((view.userScale || view.scale) + (e.deltaY > 0 ? -1 : 1), 2, 6);
-  resizeView();
-}, { passive: false });
-
 function togglePause() {
   if (Game.over || !Game.started) return;
   Game.paused = !Game.paused;
-  if (IS_TOUCH) releaseAllTouches();
-  if (Game.paused) showOverlay('Pause', '', IS_TOUCH ? 'Touchez pour reprendre' : 'Échap : reprendre');
+  releaseAllTouches();
+  if (Game.paused) showOverlay('Pause', '', 'Touchez pour reprendre');
   else hideOverlay();
 }
 
@@ -187,8 +79,8 @@ function demoInput(dt) {
     const a = Math.random() * Math.PI * 2;
     D.tx = best ? best.x : Player.x + Math.cos(a) * 6;
     D.ty = best ? best.y : Player.y + Math.sin(a) * 6;
-    mouse.wx = D.tx;
-    mouse.wy = D.ty;
+    Aim.x = D.tx;
+    Aim.y = D.ty;
     const s = D.step++ % 5;
     if (s === 0 || s === 3) castBlue(D.tx, D.ty);
     else if (s === 2) {
@@ -271,20 +163,11 @@ function update(dt) {
     if (bannerT <= 0) hud.banner.className = '';
   }
   Game.noEnergyT -= dt;
-  // le jeu se joue uniquement à l'horizontale sur mobile
-  const portrait = IS_TOUCH && innerHeight > innerWidth;
+  // le jeu se joue uniquement à l'horizontale
+  const portrait = innerHeight > innerWidth;
   if (!Game.started || Game.paused || Game.over || portrait) return;
 
-  let ux, uy;
-  if (demo) {
-    [ux, uy] = demoInput(dt);
-  } else {
-    ux = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + Touch.ux;
-    uy = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + Touch.uy;
-    // au doigt, la visée vient des boutons (touch.js), pas de la souris
-    if (!Touch.used) [mouse.wx, mouse.wy] = screenToWorld(mouse.x, mouse.y);
-  }
-  updateCombo(dt);
+  const [ux, uy] = demo ? demoInput(dt) : [Touch.ux, Touch.uy];
   updateDomain(dt);
   updatePlayer(dt, ux, uy);
   tickCooldowns(dt);
@@ -335,16 +218,10 @@ function init() {
   initTouch();
   Sfx.preload();
   document.getElementById('overlay').addEventListener('pointerdown', onOverlayTap);
-  mouse.x = view.w / 2;
-  mouse.y = view.h / 2;
   const seed = params.has('seed') ? parseInt(params.get('seed'), 10) : (Math.random() * 1e9) | 0;
   newWorld(seed);
-  if (demo || params.has('sim')) {
-    Game.started = true;
-    document.getElementById('help').classList.add('hidden');
-  } else {
-    showOverlay('JJK BATTLE CLASH', 'Satoru Gojo contre les fléaux', `${TAP} pour commencer`);
-  }
+  if (demo || params.has('sim')) Game.started = true;
+  else showOverlay('JJK BATTLE CLASH', 'Satoru Gojo contre les fléaux', 'Touchez l\'écran pour commencer');
   // ?sim=30 : avance de 30 s de jeu d'un coup (tests), puis mesure le rendu
   if (params.has('sim')) {
     const t0 = performance.now();

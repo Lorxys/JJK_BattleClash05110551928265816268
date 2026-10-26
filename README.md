@@ -1,14 +1,16 @@
 # JJK Battle Clash
 
-Jeu perso en pixel art isométrique : on incarne **Satoru Gojo** sur une île flottante
-(prairie, forêts, lacs, sanctuaires) et on exorcise des vagues de fléaux en
+Jeu perso pour téléphone (Android / iOS), en pixel art isométrique : on incarne
+**Satoru Gojo** sur une île entourée par la mer
+(prairie, forêts, cerisiers, lacs, sanctuaires) et on exorcise des vagues de fléaux en
 détruisant le décor.
 
 Aucune dépendance : le pixel art est généré par le code, les sons aussi tant que les
 fichiers du dossier `audio/` ne sont pas fournis. Il suffit d'ouvrir `index.html`
-dans un navigateur (ou de passer par GitHub Pages).
+dans le navigateur du téléphone (ou de passer par GitHub Pages). Sur ordinateur,
+la souris fait office de doigt (pratique pour tester).
 
-## Mobile (Android / iOS) : le jeu principal
+## Commandes tactiles
 
 Le jeu se joue **à l'horizontale**. À la verticale, il se met en attente et demande
 de tourner l'appareil.
@@ -16,12 +18,14 @@ de tourner l'appareil.
 | Geste | Action |
 |---|---|
 | Doigt sur la moitié gauche | Joystick : se déplacer |
-| Toucher Bleu / Rouge | Tir sur le fléau le plus proche |
+| Toucher **Bleu** (attire et écrase) / **Rouge** (explose, met le feu) | Tir sur le fléau le plus proche |
 | Glisser depuis Bleu / Rouge | Viser dans la direction du glissement (le Bleu va plus loin si on glisse plus) |
 | Bleu + Rouge tenus ensemble, ou bouton Violet | Charger le **Violet**, relâcher pour tirer |
+| Rouge tiré dans un Bleu | **Violet** par fusion, depuis la position du Bleu |
 | Téléport | Téléportation vers le fléau le plus proche |
 | Territoire | Extension du territoire |
 | II | Pause |
+| Haut-parleur | Couper / remettre le son |
 
 **Installer comme une appli** (plein écran, sans barre du navigateur) :
 
@@ -34,24 +38,6 @@ de tourner l'appareil.
 
 Dépose les MP3 dans `audio/` avec les noms listés dans
 [`audio/README.md`](audio/README.md). Chaque fichier présent remplace le son généré.
-
-## Commandes (ordinateur)
-
-| Touche | Action |
-|---|---|
-| ZQSD / flèches | Se déplacer |
-| Souris | Viser |
-| A / clic gauche | **Bleu** : aspire débris, arbres et fléaux puis les écrase |
-| E / clic droit | **Rouge** : projectile qui explose, repousse tout et met le feu |
-| A + E maintenus | **Violet** : Gojo réunit Bleu et Rouge, relâcher pour tirer |
-| Rouge tiré dans un Bleu | **Violet** par fusion, depuis la position du Bleu |
-| F | **Extension du territoire : Sphère de l'Infini** |
-| Espace / Maj | Téléportation |
-| Molette | Zoom |
-| Échap | Pause |
-| N | Nouvelle carte |
-| M | Couper le son |
-| H | Afficher / masquer l'aide |
 
 ## Règles
 
@@ -76,7 +62,7 @@ Dépose les MP3 dans `audio/` avec les noms listés dans
 ## Options d'URL
 
 `?seed=42` carte précise · `?demo` Gojo joue tout seul · `?debug` FPS dans la console ·
-`?sim=30` avance de 30 s de jeu d'un coup (tests) · `?touch` force les commandes tactiles
+`?sim=30` avance de 30 s de jeu d'un coup (tests)
 
 ## Structure
 
@@ -92,5 +78,5 @@ Dépose les MP3 dans `audio/` avec les noms listés dans
 - `js/render.js` : rendu isométrique
 - `js/audio.js` : sons (fichiers de `audio/`, sinon bruitages synthétisés)
 - `js/touch.js` : commandes tactiles, plein écran, orientation
-- `js/main.js` : entrées, boucle de jeu, interface
+- `js/main.js` : boucle de jeu, interface
 - `audio/` : musiques et bruitages (MP3) · `icons/` + `manifest.json` : installation mobile
