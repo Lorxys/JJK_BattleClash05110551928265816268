@@ -12,19 +12,26 @@
 <body>
   <canvas id="game"></canvas>
 
+  <div id="stats">
+    <div class="bar hp"><i></i><span>PV</span></div>
+    <div class="bar ce"><i></i><span>Énergie occulte</span></div>
+    <div class="bar dom"><i></i><span>Territoire</span></div>
+    <div id="wave"></div>
+  </div>
+
   <div id="title">JJK BATTLE CLASH<span>La prairie · Satoru Gojo</span></div>
   <div id="mute"></div>
 
   <div id="help">
-    <p><b>ZQSD</b> / flèches : se déplacer</p>
-    <p><b>Souris</b> : viser</p>
-    <p><b>A</b> / clic gauche : Bleu</p>
-    <p><b>E</b> / clic droit : Rouge</p>
-    <p><b>R</b> maintenu : Violet</p>
-    <p><b>Espace</b> : téléportation</p>
-    <p><b>Molette</b> : zoom</p>
-    <p><b>N</b> : nouvelle carte · <b>M</b> : son</p>
-    <p class="dim">H : masquer l'aide</p>
+    <p><b>ZQSD</b> / flèches : se déplacer · <b>Souris</b> : viser</p>
+    <p><b>A</b> / clic gauche : Bleu (attire)</p>
+    <p><b>E</b> / clic droit : Rouge (repousse)</p>
+    <p><b>A + E</b> maintenus : Violet</p>
+    <p>ou tire un Rouge dans un Bleu !</p>
+    <p><b>F</b> : Extension du territoire</p>
+    <p><b>Espace</b> : téléportation · <b>Molette</b> : zoom</p>
+    <p><b>Échap</b> : pause · <b>N</b> : nouvelle carte · <b>M</b> : son</p>
+    <p class="dim">L'Infinité bloque les coups tant qu'il reste de l'énergie occulte. H : masquer l'aide</p>
   </div>
 
   <div id="hud">
@@ -38,20 +45,35 @@
     </div>
     <div class="skill" data-k="purple">
       <div class="ico purple"></div><div class="cd"></div>
-      <div class="key">R</div><div class="nm">Violet</div>
+      <div class="key">A+E</div><div class="nm">Violet</div>
       <div class="charge"><i></i></div>
     </div>
     <div class="skill" data-k="dash">
       <div class="ico dash"></div><div class="cd"></div>
       <div class="key">ESP</div><div class="nm">Téléport</div>
     </div>
+    <div class="skill" data-k="domain">
+      <div class="ico domain"></div><div class="cd"></div>
+      <div class="key">F</div><div class="nm">Territoire</div>
+    </div>
+  </div>
+
+  <div id="banner"><div class="big"></div><div class="small"></div></div>
+
+  <div id="overlay" class="hidden">
+    <div class="big"></div>
+    <div class="small"></div>
+    <div class="hint"></div>
   </div>
 
   <script src="js/util.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/world.js"></script>
+  <script src="js/fire.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/abilities.js"></script>
+  <script src="js/curses.js"></script>
+  <script src="js/domain.js"></script>
   <script src="js/player.js"></script>
   <script src="js/render.js"></script>
   <script src="js/audio.js"></script>

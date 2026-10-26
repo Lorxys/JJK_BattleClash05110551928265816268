@@ -1,25 +1,60 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Satoru Gojo : déplacements, orientation et l'Infinité (passive)
+// Satoru Gojo : déplacements, vie, énergie occulte et l'Infinité (passive)
 // ---------------------------------------------------------------------------
 const Player = {
   kind: 'player', x: 0, y: 0, z: 0, dir: 'down', moving: false, animT: 0,
   speed: 5.5, castT: 0, charging: false, chargeT: 0, inf: 0, lastMx: 0.707, lastMy: 0.707,
+  hp: 100, maxHp: 100, energy: 100, maxEnergy: 100, energyDelay: 0, hurtT: 0, sinceHurt: 99, inDomain: false,
 };
 const INFINITY_R = 1.3;
 
 function resetPlayer() {
-  Object.assign(Player, { x: MAP_W / 2 + 0.5, y: MAP_H / 2 + 0.5, dir: 'down', charging: false, chargeT: 0, castT: 0, inf: 0 });
+  Object.assign(Player, {
+    x: MAP_W / 2 + 0.5, y: MAP_H / 2 + 0.5, dir: 'down', charging: false, chargeT: 0, castT: 0, inf: 0,
+    hp: Player.maxHp, energy: Player.maxEnergy, energyDelay: 0, hurtT: 0, sinceHurt: 99, inDomain: false,
+  });
   Player.z = groundAt(Player.x, Player.y);
 }
 
 function isBlocked(x, y) {
   if (x < 0.4 || y < 0.4 || x > MAP_W - 0.4 || y > MAP_H - 0.4) return true;
-  for (const o of World.objects) {
-    if (o.dead || !o.rad) continue;
-    const dx = o.x - x, dy = o.y - y, r = o.rad + 0.25;
-    if (dx * dx + dy * dy < r * r) return true;
+  const i0 = Math.floor(x), j0 = Math.floor(y);
+  for (let j = j0 - 1; j <= j0 + 1; j++) {
+    for (let i = i0 - 1; i <= i0 + 1; i++) {
+      const o = objectAt(i, j);
+      if (!o || o.dead || !o.rad) continue;
+      const r = o.rad + 0.25;
+      if ((o.x - x) ** 2 + (o.y - y) ** 2 < r * r) return true;
+    }
+  }
+  return false;
+}
+
+// Un coup qui touche Gojo : l'Infinité l'arrête tant qu'il reste de l'énergie.
+// Renvoie true si le coup a été bloqué.
+function hurtGojo(dmg) {
+  const P = Player;
+  if (Game.over) return true;
+  if (P.inDomain || P.energy >= dmg * 0.6) {
+    if (!P.inDomain) P.energy -= dmg * 0.6;
+    P.energyDelay = 0.8;
+    P.inf = 1;
+    for (let k = 0; k < 8; k++) spawnSpark(P.x + rnd(-1, 1), P.y + rnd(-1, 1), P.z + rnd(0.5, 2.5), 0, 0, 0, pick(CYAN_SPARKS), 0.3);
+    Sfx.block();
+    return true;
+  }
+  P.energy = 0;
+  P.hp -= dmg;
+  P.hurtT = 0.4;
+  P.sinceHurt = 0;
+  addShake(6);
+  addFlash('255,40,40', 0.25);
+  Sfx.hurt();
+  if (P.hp <= 0) {
+    P.hp = 0;
+    gameOver();
   }
   return false;
 }
@@ -36,6 +71,14 @@ function facePoint(tx, ty) {
 function updatePlayer(dt, ux, uy) {
   const P = Player;
   P.castT = Math.max(0, P.castT - dt);
+  P.hurtT = Math.max(0, P.hurtT - dt);
+  P.sinceHurt += dt;
+  P.inDomain = Domain.state === 'active' && inDomain(P.x, P.y);
+
+  // énergie occulte et vie
+  if (P.energyDelay > 0) P.energyDelay -= dt;
+  else P.energy = Math.min(P.maxEnergy, P.energy + 16 * dt);
+  if (P.sinceHurt > 5) P.hp = Math.min(P.maxHp, P.hp + 3 * dt);
 
   // direction écran -> direction dans le monde isométrique
   let wx = ux * 0.5 + uy, wy = -ux * 0.5 + uy;
@@ -55,6 +98,10 @@ function updatePlayer(dt, ux, uy) {
     P.y = clamp(P.y, 0.4, MAP_H - 0.4);
     if (P.castT <= 0) P.dir = ux ? (ux > 0 ? 'right' : 'left') : uy > 0 ? 'down' : 'up';
     P.animT += dt;
+    // Gojo marche sur l'eau : petits remous
+    if (typeAt(P.x, P.y) === T_WATER && Math.random() < dt * 10) {
+      spawnSpark(P.x + rnd(-0.4, 0.4), P.y + rnd(-0.4, 0.4), WATER_H + 0.05, rnd(-1, 1), rnd(-1, 1), 0, '#bfe2ff', 0.4);
+    }
   } else {
     P.animT = 0;
   }

@@ -13,7 +13,8 @@ const EDGE_H = -10;       // niveau du vide autour de l'île (falaises du bord)
 const MAX_DROP = 16;      // hauteur max d'une face latérale (en unités)
 const GRAVITY = 32;
 
-const T_GRASS = 0, T_DIRT = 1, T_BURNT = 2, T_VOID = 3;
+const T_GRASS = 0, T_DIRT = 1, T_BURNT = 2, T_VOID = 3, T_WATER = 4, T_SAND = 5, T_STONE = 6, T_FLOWER = 7;
+const WATER_H = -1;       // niveau de la surface des lacs
 
 // Projection monde -> écran. x, y en tuiles, z en unités de hauteur.
 const isoX = (x, y) => (x - y) * (TW / 2);

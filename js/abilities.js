@@ -1,7 +1,7 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Les techniques de Gojo : Bleu, Rouge, Violet, téléportation
+// Les techniques de Gojo : Bleu, Rouge, Violet (Bleu + Rouge), téléportation
 // ---------------------------------------------------------------------------
 const effects = [];
 const FX = { shake: 0, flash: 0, flashRgb: '255,255,255' };
@@ -10,11 +10,26 @@ const addFlash = (rgb, a) => { FX.flash = Math.max(FX.flash, a); FX.flashRgb = r
 
 const CD = { blue: 0, red: 0, purple: 0, dash: 0 };
 const CD_MAX = { blue: 1.2, red: 1.4, purple: 6, dash: 0.8 };
+const COST = { blue: 12, red: 12, purple: 35, dash: 6 };
 const PURPLE_CHARGE = 1.0;
 const BLUE_RANGE = 9;
 
 function tickCooldowns(dt) {
-  for (const k in CD) CD[k] = Math.max(0, CD[k] - dt);
+  // dans son territoire, Gojo enchaîne ses techniques trois fois plus vite
+  const k = Player.inDomain ? 3 : 1;
+  for (const key in CD) CD[key] = Math.max(0, CD[key] - dt * k);
+}
+
+function spendEnergy(cost) {
+  if (Player.inDomain) return true;
+  if (Player.energy < cost) {
+    Game.noEnergyT = 0.5;
+    Sfx.fizzle();
+    return false;
+  }
+  Player.energy -= cost;
+  Player.energyDelay = 0.6;
+  return true;
 }
 
 function drawGlowOrb(ctx, sx, sy, core, glowR, inner, mid) {
@@ -77,8 +92,10 @@ class BlueOrb {
     this.dur = 2.0;
     this.R = 4.6;
     this.digs = [0.5, 1.2];
+    this.done = false;
   }
   update(dt) {
+    if (this.done) return false;
     this.t += dt;
     const R = this.R * Math.min(1, this.t / 0.3);
     const { x, y, z } = this;
@@ -100,21 +117,23 @@ class BlueOrb {
       if (p.life < 1) p.life = 1;
     }
 
-    // le sol est arraché morceau par morceau
+    // le sol (ou l'eau) est arraché morceau par morceau
     const n = Math.floor(70 * dt + Math.random());
     for (let k = 0; k < n; k++) {
       const a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * R * 0.8;
       const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
-      const i = Math.floor(px), j = Math.floor(py);
-      if (!inMap(i, j)) continue;
-      spawnParticle(px, py, groundAt(px, py) + 0.1, 0, 0, rnd(2, 6), pick(DEBRIS[World.T[j * MAP_W + i]]), Math.random() < 0.4 ? 2 : 1, 4);
+      const t = typeAt(px, py);
+      if (t < 0) continue;
+      spawnParticle(px, py, groundAt(px, py) + 0.1, 0, 0, rnd(2, 6), pick(DEBRIS[t]), Math.random() < 0.4 ? 2 : 1, t === T_WATER ? 2.5 : 4);
     }
     while (this.digs.length && this.t >= this.digs[0]) {
       this.digs.shift();
       damageTerrain(x, y, 1.2 + this.t, 1, T_DIRT, 0.5);
     }
+    // les flammes sont aspirées : le feu s'éteint
+    extinguishArea(x, y, R * 0.6);
 
-    // arbres et rochers déracinés
+    // arbres, rochers et sanctuaires arrachés
     for (const o of World.objects) {
       if (o.dead) continue;
       const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy) + 0.01;
@@ -140,8 +159,27 @@ class BlueOrb {
       f.vy *= Math.pow(0.2, dt);
       f.vz *= Math.pow(0.2, dt);
       f.hold = true;
+      f.burning = false;
       f.life = Math.max(f.life, 1);
       f.spin = clamp(f.spin + (f.spin >= 0 ? 1 : -1) * dt * 10, -20, 20);
+    }
+
+    // les fléaux aussi
+    for (const c of curses) {
+      if (c.dead || c.spawnT > 0) continue;
+      const dx = x - c.x, dy = y - c.y, dz = (z - c.z - 0.8) * 0.5;
+      const d = Math.hypot(dx, dy, dz) + 0.01;
+      if (d > R) continue;
+      const s = (14 + 30 * (1 - d / R)) * (c.type === 'brute' ? 0.3 : 1);
+      c.vx += ((dx / d) * s - (dy / d) * s * 0.6) * dt;
+      c.vy += ((dy / d) * s + (dx / d) * s * 0.6) * dt;
+      c.vz += (dz / d) * s * 2 * dt;
+      c.vx *= Math.pow(0.2, dt);
+      c.vy *= Math.pow(0.2, dt);
+      c.vz *= Math.pow(0.2, dt);
+      c.held = true;
+      c.air = true;
+      if (d < 1.6) damageCurse(c, 5 * dt);
     }
 
     addShake(1.5);
@@ -162,6 +200,11 @@ class BlueOrb {
       p.vx = (dx / d) * s;
       p.vy = (dy / d) * s;
       p.vz = rnd(2, 8);
+    }
+    for (const c of curses) {
+      const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy, (c.z - z) * 0.5) + 0.01;
+      if (c.dead || d > R) continue;
+      damageCurse(c, 6 + 14 * (1 - d / R), (dx / d) * 6, (dy / d) * 6, 6);
     }
     for (let k = 0; k < 90; k++) {
       const a = rnd(0, Math.PI * 2), s = rnd(4, 14);
@@ -197,6 +240,13 @@ class RedShot {
       this.x += this.dx * st;
       this.y += this.dy * st;
       this.dist += st;
+      // Rouge qui traverse un Bleu : les deux fusionnent en Violet
+      for (const e of effects) {
+        if (e instanceof BlueOrb && !e.done && Math.hypot(e.x - this.x, e.y - this.y) < 1.8) {
+          fusePurple(e, this);
+          return false;
+        }
+      }
       if (this.hits()) {
         redExplosion(this.x, this.y, this.z);
         return false;
@@ -207,10 +257,12 @@ class RedShot {
   }
   hits() {
     if (this.dist >= this.range) return true;
-    const g = groundAt(this.x, this.y);
-    if (g > this.z - 0.5) return true;
+    if (groundAt(this.x, this.y) > this.z - 0.5) return true;
     for (const o of World.objects) {
       if (!o.dead && o.kind !== 'bush' && (o.x - this.x) ** 2 + (o.y - this.y) ** 2 < 0.36) return true;
+    }
+    for (const c of curses) {
+      if (!c.dead && c.spawnT <= 0 && (c.x - this.x) ** 2 + (c.y - this.y) ** 2 < 0.5 && Math.abs(c.z + 0.8 - this.z) < 2) return true;
     }
     return false;
   }
@@ -228,7 +280,7 @@ function redExplosion(x, y, z) {
     if (d > R) continue;
     const f = 1 - d / R, s = 6 + 16 * f;
     if (o.kind === 'bush' || (o.kind === 'rock' && f > 0.4)) shatterObject(o, 4 + 6 * f);
-    else uprootObject(o, (dx / d) * s, (dy / d) * s, 5 + 10 * f, rnd(-10, 10));
+    else uprootObject(o, (dx / d) * s, (dy / d) * s, 5 + 10 * f, rnd(-10, 10), Math.random() < 0.4);
   }
   for (const fl of flyers) {
     const dx = fl.x - x, dy = fl.y - y, d = Math.hypot(dx, dy) + 0.01;
@@ -246,7 +298,16 @@ function redExplosion(x, y, z) {
     p.vy += (dy / d) * s;
     p.vz += s * 0.8;
   }
+  for (const c of curses) {
+    if (c.dead || c.spawnT > 0) continue;
+    const dx = c.x - x, dy = c.y - y, d = Math.hypot(dx, dy) + 0.01;
+    if (d > R + 0.5) continue;
+    const f = Math.max(0, 1 - d / (R + 0.5));
+    damageCurse(c, 6 + 26 * f, (dx / d) * (6 + 12 * f), (dy / d) * (6 + 12 * f), 6 + 8 * f);
+  }
   damageTerrain(x, y, 3.2, 2, T_BURNT, 1.2);
+  // la chaleur enflamme l'herbe et les arbres autour du cratère
+  igniteRing(x, y, 2.6, R + 1.5, 0.35);
   for (let k = 0; k < 150; k++) {
     const a = rnd(0, Math.PI * 2), s = rnd(3, 16);
     spawnSpark(x, y, z, Math.cos(a) * s, Math.sin(a) * s, rnd(-1, 1) * s * 1.5, pick(RED_SPARKS), rnd(0.3, 0.8), Math.random() < 0.3 ? 2 : 1);
@@ -280,6 +341,7 @@ class PurpleSphere {
       f.dead = true;
       for (let k = 0; k < 10; k++) spawnSpark(f.x, f.y, f.z, rnd(-2, 2), rnd(-2, 2), rnd(-2, 2), pick(PURPLE_SPARKS), rnd(0.4, 0.9));
     }
+    for (const c of curses) if (!c.dead && Math.hypot(c.x - x, c.y - y) < R + 0.5) killCurse(c, true);
     for (const p of particles) if (Math.hypot(p.x - x, p.y - y) < R) p.life = 0;
     for (let k = 0; k < 8; k++) {
       const a = rnd(0, Math.PI * 2);
@@ -301,15 +363,33 @@ class PurpleSphere {
     drawGlowOrb(ctx, sx, sy, r * 0.75, r * 1.5, 'rgba(255,235,255,1)', 'rgba(150,60,255,0.9)');
     ctx.fillStyle = '#f0d8ff';
     for (let n = 0; n < 40; n++) {
-      const a = this.t * 6 + n * 0.157 * 4, rr = r * (0.8 + 0.2 * Math.sin(n * 1.7 + this.t * 10));
+      const a = this.t * 6 + n * 0.628, rr = r * (0.8 + 0.2 * Math.sin(n * 1.7 + this.t * 10));
       ctx.fillRect(Math.round(sx + Math.cos(a) * rr), Math.round(sy + Math.sin(a) * rr), 1, 1);
     }
   }
 }
 
+function firePurple(x, y, z, dx, dy) {
+  effects.push(new PurpleSphere(x, y, z, dx, dy));
+  addShake(12);
+  addFlash('210,150,255', 0.6);
+  Sfx.purple();
+  showBanner('虚式「茈」', 'Technique inversée : Violet', 'purple', 1.6);
+}
+
+// Fusion dans le monde : un Rouge tiré dans un Bleu actif
+function fusePurple(orb, shot) {
+  orb.done = true;
+  for (let k = 0; k < 60; k++) {
+    const a = rnd(0, Math.PI * 2), s = rnd(2, 10);
+    spawnSpark(orb.x, orb.y, orb.z, Math.cos(a) * s, Math.sin(a) * s, rnd(-3, 3), pick(k & 1 ? BLUE_SPARKS : RED_SPARKS), rnd(0.3, 0.6));
+  }
+  firePurple(orb.x, orb.y, orb.z, shot.dx, shot.dy);
+}
+
 // --- Lancement des techniques -------------------------------------------------------
 function castBlue(tx, ty) {
-  if (CD.blue > 0 || Player.charging) return;
+  if (CD.blue > 0 || Player.charging || !spendEnergy(COST.blue)) return;
   const dx = tx - Player.x, dy = ty - Player.y, d = Math.hypot(dx, dy);
   if (d > BLUE_RANGE) {
     tx = Player.x + (dx / d) * BLUE_RANGE;
@@ -322,7 +402,7 @@ function castBlue(tx, ty) {
 }
 
 function castRed(tx, ty) {
-  if (CD.red > 0 || Player.charging) return;
+  if (CD.red > 0 || Player.charging || !spendEnergy(COST.red)) return;
   let dx = tx - Player.x, dy = ty - Player.y;
   const d = Math.hypot(dx, dy) || 1;
   dx /= d;
@@ -333,8 +413,14 @@ function castRed(tx, ty) {
   Sfx.red();
 }
 
+// Bleu + Rouge en même temps : Gojo réunit les deux dans ses mains
 function startPurple() {
   if (CD.purple > 0 || Player.charging) return;
+  if (!Player.inDomain && Player.energy < COST.purple) {
+    Game.noEnergyT = 0.5;
+    Sfx.fizzle();
+    return;
+  }
   Player.charging = true;
   Player.chargeT = 0;
   Sfx.charge();
@@ -343,7 +429,7 @@ function startPurple() {
 function releasePurple(tx, ty) {
   if (!Player.charging) return;
   Player.charging = false;
-  if (Player.chargeT < PURPLE_CHARGE) {
+  if (Player.chargeT < PURPLE_CHARGE || !spendEnergy(COST.purple)) {
     Sfx.fizzle();
     return;
   }
@@ -352,15 +438,14 @@ function releasePurple(tx, ty) {
   dx /= d;
   dy /= d;
   facePoint(tx, ty);
-  effects.push(new PurpleSphere(Player.x + dx * 3, Player.y + dy * 3, Player.z + 1.8, dx, dy));
+  firePurple(Player.x + dx * 3, Player.y + dy * 3, Player.z + 1.8, dx, dy);
   CD.purple = CD_MAX.purple;
-  addShake(12);
-  addFlash('210,150,255', 0.6);
-  Sfx.purple();
+  CD.blue = Math.max(CD.blue, CD_MAX.blue);
+  CD.red = Math.max(CD.red, CD_MAX.red);
 }
 
 function dash(tx, ty) {
-  if (CD.dash > 0) return;
+  if (CD.dash > 0 || !spendEnergy(COST.dash)) return;
   let dx = Player.lastMx, dy = Player.lastMy;
   if (!Player.moving) {
     dx = tx - Player.x;

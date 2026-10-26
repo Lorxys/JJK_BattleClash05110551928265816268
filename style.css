@@ -18,6 +18,15 @@ body {
   cursor: crosshair;
 }
 
+.panel,
+#stats,
+#help,
+.skill {
+  background: rgba(10, 12, 26, 0.78);
+  border: 2px solid #3a4370;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
 #title {
   position: fixed;
   top: 14px;
@@ -44,24 +53,73 @@ body {
   pointer-events: none;
 }
 
-#help {
+/* --- Vie, énergie, territoire --- */
+#stats {
   position: fixed;
   top: 12px;
   left: 12px;
-  padding: 10px 12px;
-  font-size: 8px;
+  width: 230px;
+  padding: 8px 10px;
+  pointer-events: none;
+}
+
+.bar {
+  position: relative;
+  height: 12px;
+  margin-bottom: 6px;
+  background: #151829;
+  border: 1px solid #000;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transition: width 0.1s linear;
+}
+
+.bar > span {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font-size: 7px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.bar.hp > i { background: linear-gradient(#ff6a6a, #c02838); }
+.bar.ce > i { background: linear-gradient(#9fd4ff, #2f7ad8); }
+.bar.dom > i { background: linear-gradient(#f0e0ff, #8a4ad8); }
+.bar.ce.empty { animation: blink 0.15s steps(2) infinite; }
+
+@keyframes blink {
+  50% { border-color: #ff4040; background: #401018; }
+}
+
+#wave {
+  margin-top: 4px;
+  font-size: 7px;
   line-height: 1.5;
-  background: rgba(10, 12, 26, 0.72);
-  border: 2px solid #3a4370;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  color: #d8c8ff;
+}
+
+/* --- Aide --- */
+#help {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  max-width: 300px;
+  padding: 8px 10px;
+  font-size: 7px;
+  line-height: 1.5;
   pointer-events: none;
 }
 
 #help p { margin: 3px 0; }
 #help b { color: #9fd4ff; }
-#help .dim { color: #8088aa; margin-top: 8px; }
-.hidden { display: none; }
+#help .dim { color: #8088aa; margin-top: 6px; }
+.hidden { display: none !important; }
 
+/* --- Techniques --- */
 #hud {
   position: fixed;
   left: 50%;
@@ -76,13 +134,11 @@ body {
   position: relative;
   width: 64px;
   height: 64px;
-  background: rgba(10, 12, 26, 0.8);
-  border: 2px solid #3a4370;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
 
 .skill.ready { border-color: #8ea0e8; }
+.skill[data-k="domain"].ready { border-color: #e8d8ff; box-shadow: 0 0 10px rgba(200, 160, 255, 0.8); }
 
 .ico {
   position: absolute;
@@ -98,6 +154,12 @@ body {
 .ico.red { background: radial-gradient(circle, #fff 0 18%, #ff7a3a 40%, #b81d1d 68%, transparent 72%); }
 .ico.purple { background: radial-gradient(circle, #fff 0 18%, #c27cff 40%, #5a1db8 68%, transparent 72%); }
 .ico.dash { background: radial-gradient(circle, #fff 0 14%, #8ee6ff 36%, transparent 40%, transparent 52%, #8ee6ff 56%, transparent 62%); }
+.ico.domain {
+  background:
+    radial-gradient(circle at 35% 35%, #fff 0 6%, transparent 8%),
+    radial-gradient(circle at 65% 60%, #bfe4ff 0 5%, transparent 7%),
+    radial-gradient(circle, #0a0c24 0 55%, #e8f4ff 60%, transparent 66%);
+}
 
 .cd {
   position: absolute;
@@ -111,7 +173,7 @@ body {
   position: absolute;
   top: 3px;
   left: 4px;
-  font-size: 8px;
+  font-size: 7px;
   color: #ffe08a;
 }
 
@@ -119,7 +181,7 @@ body {
   position: absolute;
   bottom: 5px;
   width: 100%;
-  font-size: 7px;
+  font-size: 6px;
   text-align: center;
 }
 
@@ -138,3 +200,47 @@ body {
   width: 0;
   background: #c27cff;
 }
+
+/* --- Bannières (vagues, techniques, extension) --- */
+#banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 22%;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+#banner.show { opacity: 1; transform: scale(1); }
+#banner .big { font-size: 28px; text-shadow: 3px 3px 0 #000; }
+#banner .small { margin-top: 12px; font-size: 10px; text-shadow: 2px 2px 0 #000; }
+#banner.wave .big { color: #ff8090; }
+#banner.purple .big { color: #d8a8ff; font-size: 22px; }
+#banner.domain .big {
+  font-family: serif;
+  font-size: 56px;
+  letter-spacing: 12px;
+  color: #fff;
+  text-shadow: 0 0 18px #9fd4ff, 0 0 40px #6a4aff;
+}
+#banner.domain .small { color: #bfe4ff; }
+
+/* --- Pause / défaite --- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(5, 6, 16, 0.7);
+  text-align: center;
+}
+
+#overlay .big { font-size: 26px; color: #ffb0c0; text-shadow: 3px 3px 0 #000; }
+#overlay .small { font-size: 10px; color: #d8c8ff; }
+#overlay .hint { font-size: 9px; color: #9fd4ff; }

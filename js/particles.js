@@ -1,18 +1,22 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Débris physiques (terre, bois, pierre), étincelles d'énergie et objets en vol
+// Débris physiques (terre, bois, pierre), étincelles d'énergie, fumée
+// et objets en vol
 // ---------------------------------------------------------------------------
 const particles = [];
 const sparks = [];
+const smokes = [];
 const flyers = [];
 const MAX_PARTICLES = 4500;
-const MAX_SPARKS = 2500;
+const MAX_SPARKS = 3000;
+const MAX_SMOKES = 350;
 
 const BLUE_SPARKS = ['#bfe4ff', '#6fb8ff', '#3a7dff', '#ffffff'];
 const RED_SPARKS = ['#ffd0a0', '#ff7a3a', '#ff3a2a', '#ffffff'];
 const PURPLE_SPARKS = ['#e8c8ff', '#b46cff', '#8a3cff', '#ffffff'];
 const CYAN_SPARKS = ['#dff7ff', '#8ee6ff'];
+const CURSE_SPARKS = ['#6a2a7a', '#3a1040', '#b03a8a', '#200818'];
 
 function spawnParticle(x, y, z, vx, vy, vz, c, s = 1, life = 4) {
   const p = { kind: 'p', x, y, z, vx, vy, vz, c, s, life, float: false };
@@ -32,6 +36,13 @@ function spawnDebris(x, y, z, count, colors, power, up = 1) {
 function spawnSpark(x, y, z, vx, vy, vz, c, life = 0.5, s = 1) {
   if (sparks.length >= MAX_SPARKS) return;
   sparks.push({ x, y, z, vx, vy, vz, c, life, max: life, s });
+}
+
+// steam = vapeur blanche, sinon fumée sombre
+function spawnSmoke(x, y, z, steam = false) {
+  if (smokes.length >= MAX_SMOKES) return;
+  const life = rnd(1.2, 2.2);
+  smokes.push({ x, y, z, r: rnd(1.5, 3), life, max: life, vz: rnd(1, 2), c: steam ? '225,232,240' : '48,44,42' });
 }
 
 function updateParticles(dt) {
@@ -55,6 +66,7 @@ function updateParticles(dt) {
     p.z += p.vz * dt;
     const g = groundAt(p.x, p.y);
     if (p.z < g) {
+      if (typeAt(p.x, p.y) === T_WATER) continue; // coule
       p.z = g;
       if (p.vz < -3) {
         p.vz *= -0.3;
@@ -90,6 +102,20 @@ function updateSparks(dt) {
   sparks.length = w;
 }
 
+function updateSmokes(dt) {
+  let w = 0;
+  for (let k = 0; k < smokes.length; k++) {
+    const s = smokes[k];
+    s.life -= dt;
+    if (s.life <= 0) continue;
+    s.z += s.vz * dt;
+    s.x += 0.3 * dt;
+    s.r += dt * 3;
+    smokes[w++] = s;
+  }
+  smokes.length = w;
+}
+
 function updateFlyers(dt) {
   const drag = Math.pow(0.7, dt);
   let w = 0;
@@ -105,6 +131,9 @@ function updateFlyers(dt) {
     f.y += f.vy * dt;
     f.z += f.vz * dt;
     f.ang += f.spin * dt;
+    if (f.burning && Math.random() < dt * 20) {
+      spawnSpark(f.x + rnd(-0.5, 0.5), f.y + rnd(-0.5, 0.5), f.z + rnd(-1, 1), 0, 0, rnd(1, 3), pick(FIRE_SPARKS), rnd(0.2, 0.5));
+    }
     if ((f.z - f.rz < groundAt(f.x, f.y) && f.vz < 0) || f.life <= 0) {
       breakFlyer(f);
       continue;
