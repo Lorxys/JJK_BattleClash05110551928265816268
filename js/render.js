@@ -5,7 +5,7 @@
 // profondeur, puis une couche additive pour les effets lumineux.
 // ---------------------------------------------------------------------------
 // scale = nombre de pixels physiques de l'écran par pixel du jeu
-const view = { canvas: null, ctx: null, scale: 4, hr: 2, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null, vignette: null };
+const view = { canvas: null, ctx: null, scale: 3, dpr: 1, w: 0, h: 0, camX: 0, camY: 0, sea: null };
 const buckets = [];
 const burningSeen = [];  // arbres en feu visibles, pour dessiner leurs flammes
 const lanternsSeen = []; // lanternes visibles, pour leur halo
@@ -20,22 +20,20 @@ function initView() {
 }
 
 function resizeView() {
-  // on raisonne en pixels physiques pour rester net sur les écrans haute densité ;
-  // le canevas est deux fois plus fin que la grille du jeu (hr) pour que Gojo et
-  // les effets puissent être dessinés avec des demi-pixels
+  // on raisonne en pixels physiques pour rester net sur les écrans haute densité :
+  // chaque pixel du jeu devient un carré entier de pixels de l'écran
   view.dpr = window.devicePixelRatio || 1;
   const devW = innerWidth * view.dpr, devH = innerHeight * view.dpr;
-  view.scale = 2 * Math.max(1, Math.round(devH / 660));
+  view.scale = Math.max(2, Math.round(devH / 330));
   view.w = Math.ceil(devW / view.scale);
   view.h = Math.ceil(devH / view.scale);
-  view.canvas.width = view.w * view.hr;
-  view.canvas.height = view.h * view.hr;
+  view.canvas.width = view.w;
+  view.canvas.height = view.h;
   view.canvas.style.width = (view.w * view.scale) / view.dpr + 'px';
   view.canvas.style.height = (view.h * view.scale) / view.dpr + 'px';
   document.body.classList.toggle('portrait', innerHeight > innerWidth);
   view.ctx.imageSmoothingEnabled = false;
   if (!view.sea) view.sea = view.ctx.createPattern(buildSea(), 'repeat');
-  buildVignette();
   snapCamera();
 }
 
@@ -43,7 +41,16 @@ function resizeView() {
 function buildSea() {
   const r = mulberry32(4242), W = 96, Hh = 48, p = new Pix(W, Hh);
   const base = toRgb(['#24457f', '#264884', '#22427a']), hl = toRgb(['#3c62a8', '#5a82c8']);
-  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) p.set(x, y, base[(r() * 3) | 0]);
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) p.set(x, y, base[0]);
+  // zones un peu plus sombres, en amas, pour donner de la profondeur
+  for (let k = 0; k < 18; k++) {
+    let x = (r() * W) | 0, y = (r() * Hh) | 0;
+    for (let s = 0; s < 14; s++) {
+      p.set((x + W) % W, (y + Hh) % Hh, base[2]);
+      if (r() < 0.7) x += r() < 0.5 ? -1 : 1;
+      else y += r() < 0.5 ? -1 : 1;
+    }
+  }
   for (let k = 0; k < 70; k++) {
     const x = (r() * W) | 0, y = (r() * Hh) | 0, len = 2 + ((r() * 3) | 0), c = r() < 0.3 ? hl[1] : hl[0];
     for (let s = 0; s < len; s++) p.set((x + s) % W, y, c);
@@ -63,20 +70,34 @@ function updateCamera(dt) {
   view.camY += (ty - view.camY) * k;
 }
 
+// Image de Gojo selon ce qu'il fait, de la plus prioritaire à la moins prioritaire
 function playerSprite() {
-  if (Player.punchT > 0) return Player.punchDir === 'left' ? Gfx.gojo.punchLeft : Gfx.gojo.punchRight;
-  const fr = Gfx.gojo[Player.dir];
-  return Player.moving ? fr[1 + (Math.floor(Player.animT * 9) % 4)] : fr[0];
+  const P = Player, G = Gfx.gojo, A = G.act;
+  const pose = (k) => A[k][P.side];
+  if (Game.over) return A.front_down.right;
+  if (Domain.state === 'casting') return A.front_domain.right;
+  if (P.hurtT > 0.2) return P.dir === 'left' || P.dir === 'right' ? A.hurt[P.dir] : A.front_hurt.right;
+  if (P.charging) return pose(P.chargeT < PURPLE_CHARGE * 0.5 ? 'purple0' : 'purple1');
+  if (P.act) {
+    const k = P.actT / P.actDur;
+    if (P.act === 'blue') return pose(k < 0.3 ? 'blue0' : 'blue1');
+    if (P.act === 'red') return pose(k < 0.3 ? 'red0' : 'red1');
+    if (P.act === 'purple') return pose('purple2');
+    return pose(P.act); // jab, cross, kick, upper, flash, dash
+  }
+  const fr = G[P.dir];
+  if (P.moving) return fr[2 + (Math.floor(P.animT * 8) % 4)];
+  // au repos il respire, et de temps en temps lève la main comme sur l'artwork
+  if (P.dir === 'down' && P.idleT % 9 > 6.5) return A.front_pose.right;
+  return fr[Math.floor(P.idleT / 0.8) % 2];
 }
 
-const SWAYING = new Set(['tuft', 'reed']);
 const byDepth = (a, b) => a.x + a.y - (b.x + b.y);
 
 function render() {
   const ctx = view.ctx, W = view.w, Hh = view.h;
   const { H, T, V } = World;
   const now = performance.now() / 1000;
-  ctx.setTransform(view.hr, 0, 0, view.hr, 0, 0);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
   const cx = Math.round(view.camX + (Math.random() - 0.5) * FX.shake);
@@ -125,6 +146,14 @@ function render() {
       if (h > hr) ctx.drawImage(Gfx.sideR[t][Math.min(h - hr, MAX_DROP)], sx - 16, sy);
       const tops = Gfx.tops[t];
       ctx.drawImage(tops[(V[idx] + (t === T_WATER ? waterFrame : 0)) % tops.length], sx - 16, sy - 4);
+      // l'herbe voisine déborde sur le sable en lisière irrégulière
+      if (t === T_SAND) {
+        const nb = [i > 0 ? idx - 1 : -1, j > 0 ? idx - MAP_W : -1, i + 1 < MAP_W ? idx + 1 : -1, j + 1 < MAP_H ? idx + MAP_W : -1];
+        for (let d = 0; d < 4; d++) {
+          const n = nb[d];
+          if (n >= 0 && H[n] === h && (T[n] === T_GRASS || T[n] === T_FLOWER)) ctx.drawImage(Gfx.fringe[d][V[idx] % 3], sx - 16, sy - 4);
+        }
+      }
       if (h !== 0 && t !== T_WATER) {
         ctx.globalAlpha = h < 0 ? Math.min(0.55, -h * 0.1) : h * 0.05;
         ctx.drawImage(h < 0 ? Gfx.dark : Gfx.light, sx - 16, sy);
@@ -141,9 +170,7 @@ function render() {
   // fumée, ondes de choc, avertissements
   for (const s of smokes) {
     ctx.fillStyle = `rgba(${s.c},${(0.3 * s.life) / s.max})`;
-    ctx.beginPath();
-    ctx.arc(isoX(s.x, s.y) - cx, isoY(s.x, s.y, s.z) - cy, s.r, 0, Math.PI * 2);
-    ctx.fill();
+    pxDisc(ctx, isoX(s.x, s.y) - cx, isoY(s.x, s.y, s.z) - cy, s.r);
   }
   drawAmbience(ctx, cx, cy, W, Hh);
   for (const e of effects) if (e.drawOverlay) e.drawOverlay(ctx, cx, cy);
@@ -166,17 +193,7 @@ function render() {
   ctx.globalAlpha = 1;
   drawAmbienceGlow(ctx, cx, cy, W, Hh);
   drawPlayerAura(ctx);
-
-  // étalonnage froid et violacé, puis vignette
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.fillStyle = '#d8cfee';
-  ctx.fillRect(0, 0, W, Hh);
   ctx.globalCompositeOperation = 'source-over';
-  if (view.vignette) {
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(view.vignette, 0, 0, W, Hh);
-    ctx.imageSmoothingEnabled = false;
-  }
 
   if (FX.flash > 0.01) {
     ctx.fillStyle = `rgba(${FX.flashRgb},${FX.flash})`;
@@ -239,10 +256,10 @@ function drawItem(ctx, o, cx, cy, W, Hh) {
 }
 
 function drawShadow(ctx, x, y, rx, a = 0.22) {
-  ctx.fillStyle = `rgba(0,0,0,${a})`;
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, rx * 0.45, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // ombre pixelisée : un cœur plus sombre dans une ellipse en marches
+  ctx.fillStyle = `rgba(12,24,8,${a})`;
+  pxEllipse(ctx, x, y, rx, rx * 0.45);
+  pxEllipse(ctx, x, y, rx * 0.6, rx * 0.27);
 }
 
 function drawObject(ctx, o, cx, cy, W, Hh) {
@@ -254,16 +271,7 @@ function drawObject(ctx, o, cx, cy, W, Hh) {
   if ((o.kind === 'tree' || o.sp === 'torii') && o.x + o.y > Player.x + Player.y && Math.abs(playerSX - sx) < 20 && playerSY < sy && playerSY > sy - o.ay - 4) {
     ctx.globalAlpha = 0.45;
   }
-  // le vent fait ployer arbres et herbes, chacun à son rythme
-  const sway = o.kind === 'tree' ? 0.035 : SWAYING.has(o.sp) ? 0.14 : 0;
-  if (sway && !o.charred) {
-    const k = Math.sin(performance.now() / 650 + o.x * 0.9 + o.y * 0.5) * sway + sway * 0.6;
-    ctx.save();
-    ctx.translate(sx + ox, sy);
-    ctx.transform(1, 0, -k, 1, 0, 0);
-    ctx.drawImage(o.spr, -o.ax, -o.ay);
-    ctx.restore();
-  } else ctx.drawImage(o.spr, sx - o.ax + ox, sy - o.ay);
+  ctx.drawImage(o.spr, sx - o.ax + ox, sy - o.ay);
   ctx.globalAlpha = 1;
   if (o.burn > 0) burningSeen.push([sx, sy, o]);
   if (o.sp === 'lantern') lanternsSeen.push([sx, sy]);
@@ -331,24 +339,20 @@ function drawPlayer(ctx) {
   const sx = Math.round(playerSX), sy = Math.round(playerSY);
   drawShadow(ctx, sx, sy, 7, 0.3);
   if (Player.hurtT > 0 && Math.floor(performance.now() / 60) % 2) return;
-  const bob = Player.moving ? (Math.floor(Player.animT * 9) % 2) * 0.5 : Math.floor(performance.now() / 700) % 2 * 0.5;
-  drawGojoSprite(ctx, playerSprite(), sx, sy + bob);
+  drawGojoSprite(ctx, playerSprite(), sx, sy);
 }
 
-// Les sprites de Gojo sont deux fois plus fins : on les dessine à demi-taille
+// Les sprites de Gojo sont ancrés à la rangée des semelles
 function drawGojoSprite(ctx, spr, sx, sy) {
-  ctx.drawImage(spr, sx - GOJO_AX, sy - GOJO_FOOT / GOJO_HR, spr.width / GOJO_HR, spr.height / GOJO_HR);
+  ctx.drawImage(spr, Math.round(sx) - GOJO_AX, Math.round(sy) - GOJO_FOOT);
 }
 
 // Infinité + charge du Violet, dessinés en lumière additive
 function drawPlayerAura(ctx) {
-  const sx = playerSX, sy = playerSY - 18;
+  const sx = playerSX, sy = playerSY - 24;
   if (Player.inf > 0.03) {
-    ctx.strokeStyle = `rgba(160,215,255,${0.35 * Player.inf})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(sx, sy, 24, 28 + Math.sin(performance.now() / 120), 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = `rgba(160,215,255,${0.35 * Player.inf})`;
+    pxRing(ctx, sx, sy, 22, 26 + Math.round(Math.sin(performance.now() / 120)));
   }
   if (Player.charging) {
     const t = performance.now() / 1000;

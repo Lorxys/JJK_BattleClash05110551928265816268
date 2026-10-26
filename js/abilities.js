@@ -34,16 +34,19 @@ function spendEnergy(cost) {
   return true;
 }
 
+// Halo en paliers nets plutôt qu'en dégradé flou
 function drawGlowOrb(ctx, sx, sy, core, glowR, inner, mid) {
   if (glowR <= 0.5) return;
-  const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
-  g.addColorStop(0, inner);
-  g.addColorStop(clamp(core / glowR, 0.05, 0.95), mid);
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(sx, sy, glowR, 0, Math.PI * 2);
-  ctx.fill();
+  const a = ctx.globalAlpha;
+  ctx.fillStyle = mid;
+  ctx.globalAlpha = a * 0.2;
+  pxDisc(ctx, sx, sy, glowR);
+  ctx.globalAlpha = a * 0.35;
+  pxDisc(ctx, sx, sy, glowR * 0.62);
+  ctx.globalAlpha = a;
+  pxDisc(ctx, sx, sy, Math.max(core * 1.3, glowR * 0.32));
+  ctx.fillStyle = inner;
+  pxDisc(ctx, sx, sy, core);
 }
 
 // Onde de choc : anneau qui s'étend au sol
@@ -58,11 +61,8 @@ class Shockwave {
   drawOverlay(ctx, cx, cy) {
     const k = this.t / this.dur, r = this.R * (0.2 + 0.8 * Math.sqrt(k));
     ctx.globalAlpha = (1 - k) * 0.9;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(isoX(this.x, this.y) - cx, isoY(this.x, this.y, this.z) - cy, r * 22.6, r * 11.3, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = this.color;
+    pxRing(ctx, isoX(this.x, this.y) - cx, isoY(this.x, this.y, this.z) - cy, r * 22.6, r * 11.3, 2);
     ctx.globalAlpha = 1;
   }
 }
@@ -401,6 +401,7 @@ function castBlue(tx, ty) {
     ty = Player.y + (dy / d) * BLUE_RANGE;
   }
   facePoint(tx, ty);
+  playAct('blue', 0.45, tx, ty);
   effects.push(new BlueOrb(tx, ty));
   CD.blue = CD_MAX.blue;
   Sfx.blue();
@@ -413,6 +414,7 @@ function castRed(tx, ty) {
   dx /= d;
   dy /= d;
   facePoint(tx, ty);
+  playAct('red', 0.4, tx, ty);
   effects.push(new RedShot(Player.x + dx * 0.6, Player.y + dy * 0.6, Player.z + 1.6, dx, dy));
   CD.red = CD_MAX.red;
   Sfx.red();
@@ -427,6 +429,7 @@ function startPurple() {
     return;
   }
   Player.charging = true;
+  playAct('', 0);
   Player.chargeT = 0;
   Sfx.charge();
 }
@@ -443,6 +446,7 @@ function releasePurple(tx, ty) {
   dx /= d;
   dy /= d;
   facePoint(tx, ty);
+  playAct('purple', 0.5, tx, ty);
   firePurple(Player.x + dx * 3, Player.y + dy * 3, Player.z + 1.8, dx, dy);
   CD.purple = CD_MAX.purple;
   CD.blue = Math.max(CD.blue, CD_MAX.blue);
@@ -459,6 +463,7 @@ function dash(tx, ty) {
     dx /= d;
     dy /= d;
   }
+  playAct('dash', 0.22, Player.x + dx, Player.y + dy);
   const D = 4, spr = playerSprite();
   for (let k = 0; k < 5; k++) {
     effects.push(new Ghost(spr, Player.x + (dx * D * k) / 5, Player.y + (dy * D * k) / 5, Player.z, k * 0.03));
@@ -507,21 +512,15 @@ class BlackFlash {
     const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy, k = 1 - this.t / 0.35;
     for (let b = 0; b < 7; b++) {
       const a = rnd(0, Math.PI * 2), len = rnd(16, 40) * k;
-      let x = sx, y = sy;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
+      const pts = [[sx, sy]];
       for (let s = 1; s <= 5; s++) {
-        x = sx + Math.cos(a) * (len * s) / 5 + rnd(-4, 4);
-        y = sy + Math.sin(a) * (len * s) / 10 + rnd(-4, 4);
-        ctx.lineTo(x, y);
+        pts.push([sx + Math.cos(a) * (len * s) / 5 + rnd(-4, 4), sy + Math.sin(a) * (len * s) / 10 + rnd(-4, 4)]);
       }
       ctx.globalAlpha = k;
-      ctx.strokeStyle = '#08000a';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.strokeStyle = '#ff2a3a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      for (const [w, c] of [[3, '#08000a'], [1, '#ff2a3a']]) {
+        ctx.fillStyle = c;
+        for (let s = 1; s < pts.length; s++) pxLine(ctx, pts[s - 1][0], pts[s - 1][1], pts[s][0], pts[s][1], w);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -577,8 +576,8 @@ function strike(c, finisher) {
   const P = Player;
   const dx = c.x - P.x, dy = c.y - P.y, d = Math.hypot(dx, dy) || 1;
   facePoint(c.x, c.y);
-  P.punchT = finisher ? 0.3 : 0.16;
-  P.punchDir = dx - dy >= 0 ? 'right' : 'left';
+  // direct, crochet, coup de pied haut, uppercut… et le Black Flash au 5e coup
+  playAct(finisher ? 'flash' : ['jab', 'cross', 'kick', 'upper'][(Melee.hits - 1) % 4], finisher ? 0.32 : 0.18, c.x, c.y);
   const hx = c.x - (dx / d) * 0.3, hy = c.y - (dy / d) * 0.3, hz = c.z + (CURSE_TYPES[c.type].float ? 0.6 : 1.2);
   if (finisher) {
     // Black Flash : l'énergie occulte frappe dans le même millionième de seconde que le poing

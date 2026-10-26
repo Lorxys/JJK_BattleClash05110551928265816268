@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // Ambiance : tout ce qui fait vivre l'île sans toucher au jeu. Pétales de
 // sakura portés par le vent, papillons, oiseaux qui s'envolent quand ça
-// explose, énergie maudite qui suinte des fléaux, ombres de nuages.
+// explose, énergie maudite qui suinte des fléaux. Tout tombe sur des pixels entiers.
 // Tout est en coordonnées du monde (x, y en tuiles, z en unités de hauteur).
 // ---------------------------------------------------------------------------
 const Amb = {
@@ -12,8 +12,6 @@ const Amb = {
   wisps: [],      // fumée sombre qui monte des fléaux
   flies: [],      // papillons
   birds: [],
-  clouds: [],
-  cloudSpr: null,
   t: 0,
 };
 const WIND_X = 0.55, WIND_Y = -0.3; // le vent pousse vers la droite de l'écran
@@ -22,18 +20,6 @@ const FLY_COLS = ['#fff6e0', '#ffe27a', '#9fd8ff'];
 
 function initAmbience() {
   Amb.petals.length = Amb.motes.length = Amb.wisps.length = Amb.flies.length = Amb.birds.length = 0;
-  Amb.clouds.length = 0;
-  for (let k = 0; k < 4; k++) Amb.clouds.push({ x: Player.x + rnd(-30, 30), y: Player.y + rnd(-30, 30), s: rnd(0.8, 1.4) });
-  if (!Amb.cloudSpr) {
-    const [c, g] = makeCanvas(160, 80);
-    const grad = g.createRadialGradient(80, 40, 4, 80, 40, 40);
-    grad.addColorStop(0, 'rgba(20,10,40,1)');
-    grad.addColorStop(1, 'rgba(20,10,40,0)');
-    g.setTransform(2, 0, 0, 1, 0, 0);
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 80, 80);
-    Amb.cloudSpr = c;
-  }
 }
 
 // Les oiseaux perchés dans les arbres proches s'enfuient
@@ -143,76 +129,57 @@ function updateAmbience(dt) {
     b.z += b.vz * dt;
     if (b.life <= 0) Amb.birds.splice(k, 1);
   }
-
-  for (const c of Amb.clouds) {
-    c.x += WIND_X * 0.8 * dt;
-    c.y += WIND_Y * 0.8 * dt;
-    if (far(c, 40)) {
-      c.x = px - (c.x - px) * 0.9;
-      c.y = py - (c.y - py) * 0.9;
-    }
-  }
 }
 
-const ambX = (o, cx) => isoX(o.x, o.y) - cx;
-const ambY = (o, cy) => isoY(o.x, o.y, o.z) - cy;
+const ambX = (o, cx) => Math.round(isoX(o.x, o.y) - cx);
+const ambY = (o, cy) => Math.round(isoY(o.x, o.y, o.z) - cy);
 
 // Au-dessus du décor, sous les effets lumineux
 function drawAmbience(ctx, cx, cy, W, Hh) {
-  const on = (x, y) => x > -40 && y > -40 && x < W + 40 && y < Hh + 40;
-  // ombres des nuages
-  ctx.globalAlpha = 0.09;
-  for (const c of Amb.clouds) {
-    const x = isoX(c.x, c.y) - cx, y = isoY(c.x, c.y, 0) - cy, w = 160 * c.s;
-    ctx.drawImage(Amb.cloudSpr, x - w, y - w / 4, w * 2, w / 2);
-  }
-  ctx.globalAlpha = 1;
+  const on = (x, y) => x > -20 && y > -20 && x < W + 20 && y < Hh + 20;
   // fumée maudite
   for (const w of Amb.wisps) {
     const x = ambX(w, cx), y = ambY(w, cy);
     if (!on(x, y)) continue;
-    ctx.fillStyle = `rgba(36,10,52,${0.45 * w.life})`;
-    ctx.beginPath();
-    ctx.arc(x, y, w.r * (0.5 + w.life * 0.5), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = `rgba(36,10,52,${(0.45 * w.life).toFixed(2)})`;
+    pxDisc(ctx, x, y, w.r * (0.5 + w.life * 0.5));
   }
-  // pétales : un demi-pixel qui tourne sur lui-même
+  // pétales : un pixel qui tourne sur lui-même, posé à plat une fois au sol
   for (const p of Amb.petals) {
     const x = ambX(p, cx), y = ambY(p, cy);
     if (!on(x, y)) continue;
     ctx.globalAlpha = p.land > 0 ? Math.min(1, p.land) : 1;
     ctx.fillStyle = p.c;
-    const s = Math.abs(Math.cos(p.ph));
-    ctx.fillRect(x, y, p.land > 0 ? 1.5 : 0.5 + s * 1.5, p.land > 0 ? 0.5 : 1.5 - s);
+    const flat = p.land > 0 || Math.cos(p.ph) > 0;
+    ctx.fillRect(x, y, flat ? 2 : 1, 1);
   }
   ctx.globalAlpha = 1;
   // papillons : deux ailes qui battent
   for (const f of Amb.flies) {
-    const x = Math.round(ambX(f, cx) * 2) / 2, y = Math.round(ambY(f, cy) * 2) / 2;
+    const x = ambX(f, cx), y = ambY(f, cy);
     if (!on(x, y)) continue;
-    const open = Math.sin(f.ph * 22) > 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(x - 0.5, isoY(f.x, f.y, f.z - 1.6) - cy, 1.5, 0.5);
+    ctx.fillStyle = 'rgba(12,24,8,0.25)';
+    ctx.fillRect(x, Math.round(isoY(f.x, f.y, f.z - 1.6) - cy), 1, 1);
     ctx.fillStyle = f.c;
-    if (open) {
-      ctx.fillRect(x - 1.5, y - 0.5, 1, 1);
-      ctx.fillRect(x + 0.5, y - 0.5, 1, 1);
-    } else ctx.fillRect(x - 0.5, y - 1, 1, 1);
+    if (Math.sin(f.ph * 22) > 0) {
+      ctx.fillRect(x - 1, y - 1, 1, 2);
+      ctx.fillRect(x + 1, y - 1, 1, 2);
+    } else ctx.fillRect(x, y - 1, 1, 1);
     ctx.fillStyle = '#2a1a30';
-    ctx.fillRect(x - 0.5, y - 0.5, 1, 1);
+    ctx.fillRect(x, y, 1, 1);
   }
-  // oiseaux : silhouettes en V
+  // oiseaux : silhouettes en V, ailes hautes ou basses
   ctx.fillStyle = '#1a1426';
   for (const b of Amb.birds) {
-    const x = Math.round(ambX(b, cx) * 2) / 2, y = Math.round(ambY(b, cy) * 2) / 2;
+    const x = ambX(b, cx), y = ambY(b, cy);
     if (!on(x, y)) continue;
     ctx.globalAlpha = Math.min(1, b.life);
-    const up = Math.sin(b.ph) > 0 ? -1 : 0.5;
-    ctx.fillRect(x - 0.5, y, 1, 1);
-    ctx.fillRect(x - 2, y + up, 1.5, 0.5);
-    ctx.fillRect(x + 0.5, y + up, 1.5, 0.5);
-    ctx.fillRect(x - 1, y + up / 2, 0.5, 0.5);
-    ctx.fillRect(x + 0.5, y + up / 2, 0.5, 0.5);
+    const up = Math.sin(b.ph) > 0 ? -1 : 1;
+    ctx.fillRect(x, y, 1, 1);
+    ctx.fillRect(x - 1, y + (up < 0 ? -1 : 0), 1, 1);
+    ctx.fillRect(x + 1, y + (up < 0 ? -1 : 0), 1, 1);
+    ctx.fillRect(x - 2, y + up, 1, 1);
+    ctx.fillRect(x + 2, y + up, 1, 1);
   }
   ctx.globalAlpha = 1;
 }
@@ -221,32 +188,14 @@ function drawAmbience(ctx, cx, cy, W, Hh) {
 function drawAmbienceGlow(ctx, cx, cy, W, Hh) {
   for (const m of Amb.motes) {
     const x = ambX(m, cx), y = ambY(m, cy);
-    if (x < -10 || y < -10 || x > W + 10 || y > Hh + 10) continue;
-    const a = Math.min(1, m.life / m.max * 2) * (m.cyan ? 0.9 : 0.7);
-    ctx.globalAlpha = a;
+    if (x < -4 || y < -4 || x > W + 4 || y > Hh + 4) continue;
+    ctx.globalAlpha = Math.min(1, (m.life / m.max) * 2) * (m.cyan ? 0.9 : 0.75);
     ctx.fillStyle = m.cyan ? '#7fe8ff' : '#9a3cff';
-    if (m.cyan) {
-      ctx.fillRect(x - 1, y, 2.5, 0.5);
-      ctx.fillRect(x, y - 1, 0.5, 2.5);
-    } else {
-      ctx.fillRect(x, y, 1, 1);
-      ctx.globalAlpha = a * 0.35;
-      ctx.fillRect(x - 0.5, y - 0.5, 2, 2);
-    }
+    if (m.cyan && m.life > m.max * 0.5) {
+      // petite étoile en croix
+      ctx.fillRect(x - 1, y, 3, 1);
+      ctx.fillRect(x, y - 1, 1, 3);
+    } else ctx.fillRect(x, y, 1, 1);
   }
   ctx.globalAlpha = 1;
-}
-
-// Vignette violacée : resserre le regard sur Gojo, donne le ton « maudit »
-function buildVignette() {
-  const W = view.w, Hh = view.h;
-  if (!W || !Hh) return;
-  const [c, g] = makeCanvas(W, Hh);
-  const r = Math.hypot(W, Hh) / 2;
-  const grad = g.createRadialGradient(W / 2, Hh / 2, r * 0.3, W / 2, Hh / 2, r);
-  grad.addColorStop(0, 'rgba(16,6,34,0)');
-  grad.addColorStop(1, 'rgba(16,6,34,0.8)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, Hh);
-  view.vignette = c;
 }

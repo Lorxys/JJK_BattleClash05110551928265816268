@@ -22,7 +22,7 @@ body {
 }
 
 body {
-  font-family: 'Silkscreen', 'Dela Gothic One', monospace;
+  font-family: 'Silkscreen', 'DotGothic16', monospace;
   color: var(--text);
   text-transform: uppercase;
   text-shadow: var(--outline);
@@ -186,7 +186,7 @@ body {
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.28), transparent 55%), var(--c);
+  background: var(--c);
   border: 3px solid var(--ink);
   box-shadow: inset 4px 4px 0 rgba(255, 255, 255, 0.18), inset -4px -5px 0 rgba(0, 0, 0, 0.28);
   transition: filter 0.2s;
@@ -246,14 +246,16 @@ body {
 
 .aura::before {
   inset: 0;
-  background: radial-gradient(circle, var(--g) 0 42%, transparent 70%);
+  /* halo en deux paliers nets, pas de flou */
+  background: radial-gradient(circle, var(--g) 0 52%, transparent 52% 60%, var(--g) 60% 64%, transparent 64%);
+  opacity: 0.7;
   animation: breathe 1.6s ease-in-out infinite alternate;
 }
 
 .aura::after {
   inset: 6%;
-  -webkit-mask: radial-gradient(farthest-side, transparent 74%, #000 76% 92%, transparent 94%);
-  mask: radial-gradient(farthest-side, transparent 74%, #000 76% 92%, transparent 94%);
+  -webkit-mask: radial-gradient(farthest-side, transparent 75%, #000 75% 93%, transparent 93%);
+  mask: radial-gradient(farthest-side, transparent 75%, #000 75% 93%, transparent 93%);
   animation: spin 2s linear infinite;
 }
 
@@ -388,18 +390,18 @@ body {
 #banner.wave .big { color: var(--pink); }
 #banner.purple .big { color: #d8b8ff; }
 #banner.flash .big {
-  font-family: 'Dela Gothic One', serif;
+  font-family: 'DotGothic16', serif;
   font-size: 44px;
   color: #0a0008;
-  text-shadow: 0 0 2px #ff2a3a, 2px 2px 0 #ff2a3a, -2px -2px 0 #ff2a3a, 0 0 18px #ff2a3a;
+  text-shadow: 2px 2px 0 #ff2a3a, -2px -2px 0 #ff2a3a, 2px -2px 0 #ff2a3a, -2px 2px 0 #ff2a3a, 4px 4px 0 #0a0008;
 }
 #banner.flash .small { color: #ff8090; }
 #banner.domain .big {
-  font-family: 'Dela Gothic One', serif;
+  font-family: 'DotGothic16', serif;
   font-size: clamp(34px, 9vh, 56px);
   letter-spacing: 12px;
   color: #fff;
-  text-shadow: 0 0 18px #9fd4ff, 0 0 40px #6a4aff;
+  text-shadow: 2px 2px 0 #3a2ab0, -2px -2px 0 #3a2ab0, 2px -2px 0 #3a2ab0, -2px 2px 0 #3a2ab0, 4px 4px 0 #0b0b14;
 }
 #banner.domain .small { color: #bfe4ff; }
 
@@ -412,7 +414,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: radial-gradient(ellipse at center, rgba(40, 14, 70, 0.35), rgba(8, 4, 20, 0.85));
+  background: rgba(16, 20, 44, 0.6);
   text-align: center;
 }
 
@@ -456,24 +458,24 @@ body.portrait #rotate {
 }
 
 /* --- Touches japonaises : kanji en gothique épais, comme le titre de l'anime --- */
-.who .kj { font-family: 'Dela Gothic One', serif; font-size: 11px; color: #fff; }
+.who .kj { font-family: 'DotGothic16', serif; font-size: 11px; color: #fff; }
 #overlay .kanji {
-  font-family: 'Dela Gothic One', serif;
+  font-family: 'DotGothic16', serif;
   font-size: clamp(40px, 15vh, 72px);
-  color: #0d0814;
   letter-spacing: 6px;
-  text-shadow: 0 0 2px #b78cff, 2px 2px 0 #7b4dff, -2px -2px 0 #ff3a6a, 0 0 26px #7b4dff;
-  animation: cursed 2.4s ease-in-out infinite alternate;
+  color: #fff;
+  text-shadow: 3px 3px 0 #0b0b14, -2px -2px 0 #0b0b14, 2px -2px 0 #0b0b14, -2px 2px 0 #0b0b14, 6px 6px 0 #7b4dff;
+  animation: cursed 0.8s steps(2) infinite alternate;
 }
 #overlay .kanji:empty { display: none; }
 #banner.wave .big {
-  font-family: 'Dela Gothic One', serif;
+  font-family: 'DotGothic16', serif;
   font-size: 34px;
   letter-spacing: 6px;
   color: #ff5a7a;
-  text-shadow: 0 0 2px #1a0a20, 2px 2px 0 #1a0a20, 0 0 18px #c0206a;
+  text-shadow: 2px 2px 0 #1a0a20, -2px -2px 0 #1a0a20, 2px -2px 0 #1a0a20, -2px 2px 0 #1a0a20, 4px 4px 0 #c0206a;
 }
 @keyframes cursed {
-  from { filter: drop-shadow(0 0 4px #6a2aff); transform: translateY(1px); }
-  to { filter: drop-shadow(0 0 12px #b03aff); transform: translateY(-1px); }
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
 }

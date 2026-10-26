@@ -82,9 +82,10 @@ class Pix {
     this.w = w;
     this.h = h;
     this.d = new Uint8ClampedArray(w * h * 4);
+    this.oy = 0; // décalage vertical appliqué au dessin (marge en haut d'un sprite)
   }
   set(x, y, c) {
-    x |= 0; y |= 0;
+    x |= 0; y = (y + this.oy) | 0;
     if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
     const i = (y * this.w + x) * 4;
     this.d[i] = c[0]; this.d[i + 1] = c[1]; this.d[i + 2] = c[2]; this.d[i + 3] = 255;
@@ -148,6 +149,12 @@ class Pix {
     for (let k = 0; k <= n; k++) this.set(Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n), c);
     return this;
   }
+  // Trait épais (membres) : disques de rayon r le long du segment
+  capsule(x0, y0, x1, y1, r, c) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1) * 2;
+    for (let k = 0; k <= n; k++) this.ellipse(x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, r, r, c);
+    return this;
+  }
   rect(x, y, w, h, c) {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, c);
     return this;
@@ -156,12 +163,12 @@ class Pix {
   shade(test, c, only) {
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
-        if (!this.has(x, y) || !test(x, y)) continue;
+        if (!this.has(x, y) || !test(x, y - this.oy)) continue;
         if (only) {
           const o = this.get(x, y);
           if (o[0] !== only[0] || o[1] !== only[1] || o[2] !== only[2]) continue;
         }
-        this.set(x, y, c);
+        this.set(x, y - this.oy, c);
       }
     }
     return this;
@@ -180,5 +187,43 @@ class Pix {
     const [c, ctx] = makeCanvas(this.w, this.h);
     ctx.putImageData(new ImageData(this.d, this.w, this.h), 0, 0);
     return c;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Primitives « pixel » pour le canevas : tout tombe sur la grille, rien n'est
+// lissé (ni dégradé, ni anticrénelage), comme sur une console 16 bits
+// ---------------------------------------------------------------------------
+function pxEllipse(ctx, x, y, rx, ry) {
+  x = Math.round(x);
+  y = Math.round(y);
+  const R = Math.max(1, Math.round(ry));
+  for (let dy = -R; dy <= R; dy++) {
+    const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (R + 0.5)) ** 2)));
+    if (hw > 0) ctx.fillRect(x - hw, y + dy, hw * 2, 1);
+  }
+}
+const pxDisc = (ctx, x, y, r) => pxEllipse(ctx, x, y, r, r);
+
+// Contour d'ellipse en pixels (éventuellement un arc de a0 à a1)
+function pxRing(ctx, x, y, rx, ry, w = 1, a0 = 0, a1 = Math.PI * 2) {
+  if (rx < 0.5) return;
+  const n = Math.max(12, Math.ceil(((rx + ry) * 3.2 * (a1 - a0)) / (Math.PI * 2)));
+  let lx = 1e9, ly = 1e9;
+  for (let k = 0; k <= n; k++) {
+    const a = a0 + ((a1 - a0) * k) / n;
+    const px = Math.round(x + Math.cos(a) * rx), py = Math.round(y + Math.sin(a) * ry);
+    if (px === lx && py === ly) continue;
+    lx = px;
+    ly = py;
+    ctx.fillRect(px - (w >> 1), py - (w >> 1), w, w);
+  }
+}
+
+function pxLine(ctx, x0, y0, x1, y1, w = 1) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let k = 0; k <= n; k++) {
+    ctx.fillRect(Math.round(x0 + ((x1 - x0) * k) / n) - (w >> 1), Math.round(y0 + ((y1 - y0) * k) / n) - (w >> 1), w, w);
   }
 }

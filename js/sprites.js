@@ -106,6 +106,24 @@ function addFlowers(p, r, count, cols) {
   }
 }
 
+// Petits amas de pixels (jamais de bruit pixel par pixel) : lumière, ombre, grain
+function addClusters(p, r, count, cols, size) {
+  for (let k = 0; k < count; k++) {
+    let [x, y] = randomInDiamond(r);
+    const c = pick(cols, r), n = size[0] + ((r() * (size[1] - size[0] + 1)) | 0);
+    for (let s = 0; s < n; s++) {
+      if (inDiamond(x, y)) p.set(x, y + 4, c);
+      if (r() < 0.6) x += r() < 0.5 ? -1 : 1;
+      else y += r() < 0.5 ? -1 : 1;
+    }
+  }
+}
+
+const GRASS_LIGHT = toRgb(['#6eb43e', '#78bc46']);
+const GRASS_DARK = toRgb(['#4f9230', '#558f2e']);
+const SAND_GRAIN = toRgb(['#d0aa72', '#c8a06a']);
+const SAND_LIGHT = toRgb(['#f0d8a6', '#eccf98']);
+
 function buildTop(t, r) {
   // 4 px de marge en haut pour les brins d'herbe qui dépassent
   const p = new Pix(32, 20);
@@ -113,7 +131,8 @@ function buildTop(t, r) {
   for (let y = 0; y < 16; y++) {
     for (let x = 0; x < 32; x++) {
       if (!inDiamond(x, y)) continue;
-      let c = base[(r() * base.length) | 0];
+      // herbe, sable et eau : une teinte dominante, les nuances viennent en amas
+      let c = t === T_GRASS || t === T_FLOWER || t === T_SAND || t === T_WATER ? base[0] : base[(r() * base.length) | 0];
       if (t === T_STONE) {
         // pavés : joints selon les deux axes isométriques
         const u = x * 0.5 + y + 40, v = y - x * 0.5 + 40;
@@ -125,9 +144,13 @@ function buildTop(t, r) {
     }
   }
   if (t === T_GRASS) {
+    addClusters(p, r, 3, GRASS_LIGHT, [3, 7]);
+    addClusters(p, r, 3, GRASS_DARK, [2, 5]);
     addBlades(p, r, 4 + ((r() * 6) | 0));
     if (r() < 0.4) addFlowers(p, r, 1 + ((r() * 3) | 0), [pick(FLOWER_COLS, r)]);
   } else if (t === T_FLOWER) {
+    addClusters(p, r, 3, GRASS_LIGHT, [3, 6]);
+    addClusters(p, r, 2, GRASS_DARK, [2, 4]);
     addBlades(p, r, 5 + ((r() * 5) | 0));
     addFlowers(p, r, 7 + ((r() * 7) | 0), FLOWER_COLS);
   } else if (t === T_DIRT) {
@@ -153,6 +176,7 @@ function buildTop(t, r) {
       else y += r() < 0.5 ? -1 : 1;
     }
   } else if (t === T_WATER) {
+    addClusters(p, r, 2, [TOP_PAL[T_WATER][2]], [5, 9]);
     // petites vagues en tirets
     const hl = toRgb(['#3c62a8', '#5a82c8']);
     const n = 4 + ((r() * 3) | 0);
@@ -161,12 +185,34 @@ function buildTop(t, r) {
       const len = 2 + ((r() * 3) | 0), c = r() < 0.3 ? hl[1] : hl[0];
       for (let s = 0; s < len; s++) if (inDiamond(x + s, y)) p.set(x + s, y + 4, c);
     }
+    // un reflet blanc de temps en temps
+    if (r() < 0.4) {
+      const [x, y] = randomInDiamond(r, 2);
+      for (let s = 0; s < 2; s++) if (inDiamond(x + s, y)) p.set(x + s, y + 4, hexToRgb('#a9c6ee'));
+    }
   } else if (t === T_SAND) {
-    // grain du sable
-    const n = 10 + ((r() * 8) | 0);
-    for (let k = 0; k < n; k++) {
-      const [x, y] = randomInDiamond(r);
-      p.set(x, y + 4, hexToRgb(r() < 0.55 ? '#c8a06a' : '#f2dcae'));
+    // grain du sable en petits amas, plus clair au soleil
+    addClusters(p, r, 5, SAND_GRAIN, [1, 3]);
+    addClusters(p, r, 3, SAND_LIGHT, [2, 4]);
+  }
+  return p.canvas();
+}
+
+
+// Lisière d'herbe qui déborde sur une tuile de sable voisine, pour que la
+// limite herbe/sable soit irrégulière plutôt qu'une diagonale parfaite.
+// dir : 0 = bord haut-gauche (i-1), 1 = haut-droit (j-1), 2 = bas-droit (i+1), 3 = bas-gauche (j+1)
+function buildFringe(dir, r) {
+  const p = new Pix(32, 20);
+  const ph1 = r() * 6, ph2 = r() * 6, base = TOP_PAL[T_GRASS][0];
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 32; x++) {
+      if (!inDiamond(x, y)) continue;
+      const u = (x + 0.5 - 16) / 16, v = (y + 0.5 - 8) / 8;
+      const d = [1 + u + v, 1 - u + v, 1 - u - v, 1 + u - v][dir] * 8;
+      const w = Math.max(0.6, 2.4 + 1.4 * Math.sin(x * 0.7 + ph1) + 0.8 * Math.sin(x * 1.9 + ph2));
+      if (d < w) p.set(x, y + 4, r() < 0.15 ? GRASS_LIGHT[0] : base);
+      else if (d < w + 1) p.set(x, y + 4, GRASS_DARK[0]);
     }
   }
   return p.canvas();
@@ -214,6 +260,10 @@ function glowCanvas(size, rgb, a) {
   g.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
+  // paliers nets plutôt qu'un dégradé lisse
+  const img = ctx.getImageData(0, 0, size, size), d = img.data;
+  for (let i = 3; i < d.length; i += 4) d[i] = Math.round(d[i] / (255 * a / 4)) * ((255 * a) / 4);
+  ctx.putImageData(img, 0, 0);
   return c;
 }
 
@@ -630,6 +680,7 @@ function buildGraphics() {
       Gfx.sideR[t].push(buildSide(t, d, true, r));
     }
   }
+  Gfx.fringe = [0, 1, 2, 3].map((d) => [0, 1, 2].map(() => buildFringe(d, r)));
   Gfx.dark = diamondCanvas([0, 0, 0]);
   Gfx.light = diamondCanvas([255, 255, 230]);
   Gfx.reticle = reticleCanvas();

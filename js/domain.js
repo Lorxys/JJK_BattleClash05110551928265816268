@@ -62,11 +62,21 @@ function updateDomain(dt) {
 }
 
 // Forme du dôme vu en isométrique : demi-ellipse au sol + coupole au-dessus
+// (tracée rangée par rangée pour que le bord reste en marches de pixels)
 function domainPath(ctx, sx, sy, rx, ry) {
+  sx = Math.round(sx);
+  sy = Math.round(sy);
+  const top = Math.round(rx * 0.8), bot = Math.round(ry);
   ctx.beginPath();
-  ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI);
-  ctx.ellipse(sx, sy, rx, rx * 0.8, 0, Math.PI, Math.PI * 2);
-  ctx.closePath();
+  for (let dy = -top; dy <= bot; dy++) {
+    const rr = dy < 0 ? top : bot, hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (rr + 0.5)) ** 2)));
+    if (hw > 0) ctx.rect(sx - hw, sy + dy, hw * 2, 1);
+  }
+}
+
+function domainOutline(ctx, sx, sy, rx, ry, w) {
+  pxRing(ctx, sx, sy, rx, ry, w, 0, Math.PI);
+  pxRing(ctx, sx, sy, rx, rx * 0.8, w, Math.PI, Math.PI * 2);
 }
 
 function drawDomain(ctx, cx, cy, W, Hh) {
@@ -103,12 +113,9 @@ function drawDomain(ctx, cx, cy, W, Hh) {
   ctx.restore();
 
   ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = 'rgba(200,230,255,0.25)';
-  ctx.lineWidth = 5;
-  domainPath(ctx, sx, sy, rx, ry);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(235,245,255,0.9)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.fillStyle = 'rgba(200,230,255,0.25)';
+  domainOutline(ctx, sx, sy, rx, ry, 3);
+  ctx.fillStyle = 'rgba(235,245,255,0.9)';
+  domainOutline(ctx, sx, sy, rx, ry, 1);
   ctx.globalCompositeOperation = 'source-over';
 }

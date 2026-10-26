@@ -137,14 +137,10 @@ class SlamWarning {
     const sx = isoX(x, y) - cx, sy = isoY(x, y, groundAt(x, y)) - cy, k = Math.min(1, this.t / 0.8);
     ctx.globalAlpha = 0.25 + 0.35 * k;
     ctx.fillStyle = '#ff3030';
-    ctx.beginPath();
-    ctx.ellipse(sx, sy, 2.6 * 22.6 * k, 2.6 * 11.3 * k, 0, 0, Math.PI * 2);
-    ctx.fill();
+    pxEllipse(ctx, sx, sy, 2.6 * 22.6 * k, 2.6 * 11.3 * k);
     ctx.globalAlpha = 0.8;
-    ctx.strokeStyle = '#ff6060';
-    ctx.beginPath();
-    ctx.ellipse(sx, sy, 2.6 * 22.6, 2.6 * 11.3, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = '#ff6060';
+    pxRing(ctx, sx, sy, 2.6 * 22.6, 2.6 * 11.3);
     ctx.globalAlpha = 1;
   }
 }
