@@ -8,9 +8,9 @@ const FX = { shake: 0, flash: 0, flashRgb: '255,255,255' };
 const addShake = (m) => { FX.shake = Math.max(FX.shake, m); };
 const addFlash = (rgb, a) => { FX.flash = Math.max(FX.flash, a); FX.flashRgb = rgb; };
 
-const CD = { blue: 0, red: 0, purple: 0, dash: 0 };
-const CD_MAX = { blue: 1.2, red: 1.4, purple: 6, dash: 0.8 };
-const COST = { blue: 12, red: 12, purple: 35, dash: 6 };
+const CD = { blue: 0, red: 0, purple: 0, dash: 0, melee: 0 };
+const CD_MAX = { blue: 1.2, red: 1.4, purple: 6, dash: 0.8, melee: 0.12 };
+const COST = { blue: 12, red: 12, purple: 35, dash: 6, melee: 6 };
 const PURPLE_CHARGE = 1.0;
 const BLUE_RANGE = 9;
 
@@ -18,6 +18,8 @@ function tickCooldowns(dt) {
   // dans son territoire, Gojo enchaîne ses techniques trois fois plus vite
   const k = Player.inDomain ? 3 : 1;
   for (const key in CD) CD[key] = Math.max(0, CD[key] - dt * k);
+  Melee.t += dt;
+  if (Melee.queued && CD.melee <= 0) melee();
 }
 
 function spendEnergy(cost) {
@@ -77,7 +79,7 @@ class Ghost {
   drawOverlay(ctx, cx, cy) {
     if (this.t < 0) return;
     ctx.globalAlpha = (1 - this.t / 0.35) * 0.5;
-    ctx.drawImage(this.spr, Math.round(isoX(this.x, this.y) - cx - 9), Math.round(isoY(this.x, this.y, this.z) - cy - 28));
+    ctx.drawImage(this.spr, Math.round(isoX(this.x, this.y) - cx - GOJO_AX), Math.round(isoY(this.x, this.y, this.z) - cy - (this.spr.height - 2)));
     ctx.globalAlpha = 1;
   }
 }
@@ -465,4 +467,147 @@ function dash(tx, ty) {
   Player.y = clamp(Player.y + dy * D, 0.5, MAP_H - 0.5);
   CD.dash = CD_MAX.dash;
   Sfx.whoosh();
+}
+
+// --- Frappe : Gojo se téléporte sur le fléau le plus proche et le roue de coups ----
+// Chaque appui enchaîne un coup qui le paralyse ; le 5e est un Black Flash (黒閃).
+const MELEE_RANGE = 10;    // portée de la téléportation
+const MELEE_REACH = 2.2;   // au-delà, il faut se téléporter de nouveau
+const COMBO_WINDOW = 0.9;  // délai max entre deux appuis pour garder le combo
+const COMBO_FINISH = 5;
+const Melee = { target: null, hits: 0, t: 99, queued: false };
+const BLACK_FLASH_SPARKS = ['#ff2030', '#ff5060', '#c00818', '#ffd0d8'];
+
+function nearestCurse(x, y, range) {
+  let best = null, bd = range;
+  for (const c of curses) {
+    if (c.dead || c.spawnT > 0) continue;
+    const d = Math.hypot(c.x - x, c.y - y);
+    if (d < bd) {
+      bd = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+// Éclairs noirs et rouges autour de l'impact
+class BlackFlash {
+  constructor(x, y, z) {
+    Object.assign(this, { x, y, z, t: 0 });
+  }
+  update(dt) {
+    this.t += dt;
+    return this.t < 0.35;
+  }
+  drawOverlay(ctx, cx, cy) {
+    const sx = isoX(this.x, this.y) - cx, sy = isoY(this.x, this.y, this.z) - cy, k = 1 - this.t / 0.35;
+    for (let b = 0; b < 7; b++) {
+      const a = rnd(0, Math.PI * 2), len = rnd(16, 40) * k;
+      let x = sx, y = sy;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let s = 1; s <= 5; s++) {
+        x = sx + Math.cos(a) * (len * s) / 5 + rnd(-4, 4);
+        y = sy + Math.sin(a) * (len * s) / 10 + rnd(-4, 4);
+        ctx.lineTo(x, y);
+      }
+      ctx.globalAlpha = k;
+      ctx.strokeStyle = '#08000a';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.strokeStyle = '#ff2a3a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function blinkTo(c) {
+  const P = Player;
+  let dx = P.x - c.x, dy = P.y - c.y;
+  const d = Math.hypot(dx, dy) || 1;
+  dx /= d;
+  dy /= d;
+  const spr = playerSprite(), tx = c.x + dx * 0.9, ty = c.y + dy * 0.9;
+  for (let k = 0; k < 4; k++) {
+    effects.push(new Ghost(spr, lerp(P.x, tx, k / 4), lerp(P.y, ty, k / 4), P.z, k * 0.025));
+  }
+  for (let k = 0; k < 24; k++) {
+    spawnSpark(P.x, P.y, P.z + rnd(0, 3), rnd(-3, 3), rnd(-3, 3), rnd(-2, 2), pick(CYAN_SPARKS), rnd(0.2, 0.4));
+  }
+  P.x = clamp(tx, 0.5, MAP_W - 0.5);
+  P.y = clamp(ty, 0.5, MAP_H - 0.5);
+  P.z = groundAt(P.x, P.y);
+  Sfx.whoosh();
+}
+
+function melee() {
+  if (Player.charging) return;
+  // appui trop rapide : mémorisé et joué dès que possible, aucun coup n'est perdu
+  if (CD.melee > 0) {
+    Melee.queued = true;
+    return;
+  }
+  Melee.queued = false;
+  const M = Melee;
+  if (M.t > COMBO_WINDOW) M.hits = 0;
+  let c = M.target;
+  if (!c || c.dead || Math.hypot(c.x - Player.x, c.y - Player.y) > MELEE_REACH) {
+    c = nearestCurse(Player.x, Player.y, MELEE_RANGE);
+    if (!c) {
+      Sfx.fizzle();
+      return;
+    }
+    if (!spendEnergy(COST.melee)) return;
+    blinkTo(c);
+  }
+  M.target = c;
+  M.t = 0;
+  M.hits++;
+  strike(c, M.hits % COMBO_FINISH === 0);
+  CD.melee = M.hits % COMBO_FINISH === 0 ? 0.45 : CD_MAX.melee;
+}
+
+function strike(c, finisher) {
+  const P = Player;
+  const dx = c.x - P.x, dy = c.y - P.y, d = Math.hypot(dx, dy) || 1;
+  facePoint(c.x, c.y);
+  P.punchT = finisher ? 0.3 : 0.16;
+  P.punchDir = dx - dy >= 0 ? 'right' : 'left';
+  const hx = c.x - (dx / d) * 0.3, hy = c.y - (dy / d) * 0.3, hz = c.z + (CURSE_TYPES[c.type].float ? 0.6 : 1.2);
+  if (finisher) {
+    // Black Flash : l'énergie occulte frappe dans le même millionième de seconde que le poing
+    c.stunT = 0.5;
+    damageCurse(c, 18, (dx / d) * 14, (dy / d) * 14, 9);
+    for (const o of curses) {
+      const od = Math.hypot(o.x - c.x, o.y - c.y);
+      if (o !== c && !o.dead && od < 2) damageCurse(o, 6, ((o.x - c.x) / (od + 0.01)) * 8, ((o.y - c.y) / (od + 0.01)) * 8, 5);
+    }
+    for (let k = 0; k < 70; k++) {
+      const a = rnd(0, Math.PI * 2), s = rnd(3, 13);
+      spawnSpark(hx, hy, hz, Math.cos(a) * s, Math.sin(a) * s, rnd(-3, 6), pick(BLACK_FLASH_SPARKS), rnd(0.25, 0.6), Math.random() < 0.3 ? 2 : 1);
+    }
+    effects.push(new BlackFlash(hx, hy, hz));
+    effects.push(new Shockwave(c.x, c.y, groundAt(c.x, c.y), '#ff2a3a', 2.4, 0.35));
+    addShake(9);
+    addFlash('40,0,8', 0.45);
+    Game.hitStop = 0.09;
+    Sfx.punch(true);
+    showBanner('黒閃', 'Black Flash', 'flash', 0.9);
+    if (navigator.vibrate) navigator.vibrate(40);
+  } else {
+    // coup normal : le fléau reste paralysé tant que le combo continue
+    c.stunT = Math.max(c.stunT || 0, 1.2);
+    damageCurse(c, 3 + Math.min(Melee.hits, 10) * 0.25, (dx / d) * 0.8, (dy / d) * 0.8, 0);
+    for (let k = 0; k < 14; k++) {
+      const a = rnd(0, Math.PI * 2), s = rnd(2, 7);
+      spawnSpark(hx, hy, hz, Math.cos(a) * s, Math.sin(a) * s, rnd(-2, 3), pick(k & 1 ? CYAN_SPARKS : ['#ffffff', '#e8f6ff']), rnd(0.15, 0.3));
+    }
+    effects.push(new Shockwave(hx, hy, hz - 0.8, '#ffffff', 0.7, 0.18));
+    addShake(3);
+    Game.hitStop = 0.035;
+    Sfx.punch(false);
+  }
 }

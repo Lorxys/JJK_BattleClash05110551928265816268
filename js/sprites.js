@@ -8,100 +8,183 @@ const OUTLINE = hexToRgb('#0b0b14');
 const toRgb = (list) => list.map(hexToRgb);
 
 // --- Satoru Gojo -----------------------------------------------------------
+// Cheveux blancs en pics, bandeau noir noué derrière la tête, uniforme
+// d'exorciste à col haut fermé par un bouton doré.
 const GOJO_PAL = {
-  W: '#f4f6fb', w: '#c3cbe0', K: '#15151d', k: '#3a3a52',
-  S: '#f3cba9', s: '#d79f7e', N: '#232a48', n: '#151a30',
-  M: '#3a4370', G: '#d9b45a', O: '#0e0e14',
+  W: '#f6f8ff', w: '#cdd5ea', v: '#98a3c6',             // cheveux
+  K: '#16161e', k: '#3c3c56',                            // bandeau
+  S: '#f8d6b8', s: '#e8b898', d: '#c48a6e', m: '#a0584a', // peau, bouche
+  N: '#27305c', n: '#171c38', M: '#3e4b88',              // uniforme
+  G: '#f4cc5c', g: '#a87c28',                            // bouton doré
+  O: '#101018', o: '#34344a',                            // chaussures
 };
 
-const GOJO_FRONT = [
-  '......W..W......',
-  '...W.WWWWWW.W...',
-  '...WWWWWWWWWW...',
-  '..WWWWWWWWWWWW..',
-  '.WWWWWWWWWWWWWW.',
-  '..WWwWWWWWWwWW..',
-  '.WWwWWWWWWWWwWW.',
-  '..WKKKKKKKKKKW..',
-  '..WKkKKKKKKkKW..',
-  '..wSSSSSSSSSSw..',
-  '...SSSSSSSSSS...',
-  '...sSSSSSSSSs...',
-  '....sSSssSSs....',
-  '.....sSSSSs.....',
-  '....nNNGGNNn....',
-  '..nNNNNnnNNNNn..',
-  '.nNNNNNnnNNNNNn.',
-  '.NNMNNNnnNNNMNN.',
-  '.NNMNNNnnNNNMNN.',
-  '.NNnNNNnnNNNnNN.',
-  '.NNnNNNnnNNNnNN.',
-  '.SS.NNNnnNNN.SS.',
-  '.ss.NNNNNNNN.ss.',
+// Face et dos sont symétriques : on ne dessine que la moitié gauche (12 px)
+const mirrorRows = (half) => half.map((r) => r + [...r].reverse().join(''));
+
+const GOJO_HAIR = [
+  '......W....W',
+  '......WW..WW',
+  '..W..WWW.WWW',
+  '..WW.WWWWWWW',
+  '...WWWwWWWWw',
+  '.W.WWwWWWWwW',
+  '.WWWwWWWWwWW',
+  '..WWwWWWwWWW',
+  '.WWwWWWwWWWW',
+  '.WwWWWwWWWwW',
+  '..vWWvWWWvWW',
+  '..vvKKKKKKKK',
+  '..wvKkkkkkkk',
+  '..wvKKKKKKKK',
 ];
 
-const GOJO_BACK = [
-  '......W..W......',
-  '...W.WWWWWW.W...',
-  '...WWWWWWWWWW...',
-  '..WWWWWWWWWWWW..',
-  '.WWWWWWWWWWWWWW.',
-  '..WWWWWWWWWWWW..',
-  '.WWWWwWWWWwWWWW.',
-  '..WKKKKKKKKKKW..',
-  '..WwWWKKKKWWwW..',
-  '..wWWWWKKWWWWw..',
-  '...wWWKKKKWWw...',
-  '...wwWKwwKWww...',
-  '....swwwwwws....',
-  '.....sSSSSs.....',
-  '....nNNNNNNn....',
-  '..nNNNNNNNNNNn..',
-  '.nNNNNNNNNNNNNn.',
-  '.NNMNNNNNNNNMNN.',
-  '.NNMNNNNNNNNMNN.',
-  '.NNnNNNNNNNNnNN.',
-  '.NNnNNNNNNNNnNN.',
-  '.SS.NNNNNNNN.SS.',
-  '.ss.NNNNNNNN.ss.',
+const GOJO_BODY = [
+  '..nNNNNNNNNn',
+  '.nNMNNNNNNNn',
+  '.nMNnNNNNNNn',
+  '.nMNnNNNNNNn',
+  '.nMNnNNMNNNn',
+  '.nMNnNNNNNNn',
+  '.nMNnNNNNNNn',
+  '.nMnnNNNNNNn',
+  '.SS..nNNNNNn',
+  '.dS..nNNNNNn',
 ];
 
-const GOJO_SIDE = [
-  '.....W..W.......',
-  '...W.WWWWW.W....',
-  '...WWWWWWWWWW...',
-  '..WWWWWWWWWWWW..',
-  '.WWWWWWWWWWWWW..',
-  '..WWWWWWWWWWWW..',
-  '.WWWWWWWWwWWWW..',
-  '..WWWKKKKKKKKK..',
-  '..KKWKKKKKKKkK..',
-  '...KwWWSSSSSSS..',
-  '...K.wWSSSSSSSS.',
-  '......wSSSSSSs..',
-  '......sSSSSs....',
-  '.......sSSs.....',
-  '......nNNGn.....',
-  '.....nNNNNNn....',
-  '.....NNNNNNNn...',
-  '.....NNMNNNNN...',
-  '.....NNMNNNNN...',
-  '.....NNMNNNNN...',
-  '.....NNnNNNNN...',
-  '.....NSSNNNNN...',
-  '.....NssNNNNN...',
+const GOJO_FRONT = mirrorRows([
+  ...GOJO_HAIR,
+  '..vvSSSSSSSS',
+  '...dSSSSSSSS',
+  '...dSSSSSSSS',
+  '...ddSSSSSSS',
+  '....dSSSSSSS',
+  '....ddSSSSSm',
+  '.....ddSSSSS',
+  '...nNNddSSSS',
+  '..nNNNNNNNNG',
+  '..nNNNNNNNNg',
+  ...GOJO_BODY,
+]);
+
+// De dos : le nœud du bandeau et ses deux pans
+const GOJO_BACK = mirrorRows([
+  ...GOJO_HAIR,
+  '..vWWWWWWWKK',
+  '...wWWWWWKWW',
+  '...wWWWWWKWW',
+  '....wWWWKWWW',
+  '....wwWWKwww',
+  '.....wwwwwww',
+  '...nNNNNNNNN',
+  '..nNNNNNNNNN',
+  '..nNNNNNNNNN',
+  ...GOJO_BODY,
+]);
+
+// De profil, tourné vers la droite
+const GOJO_SIDE_HEAD = [
+  '...........W....W.......',
+  '.....W.....WW..WW.......',
+  '.....WW...WWWWWWW.W.....',
+  '..W..WWWWWWWWWWWWWW.....',
+  '..WW.WWWWwWWWWWwWWWW....',
+  '...WWWWwWWWWWwWWWWWWW...',
+  '.WWWWwWWWWWwWWWWWwWWW...',
+  'WWWWwWWWWWwWWWWWwWWWWW..',
+  '.WWwWWWWWwWWWWWwWWWWWW..',
+  '..WWWWWWwWWWWWwWWWWWwW..',
+  '..vWWWWvWWWWvWWWWvWWvW..',
+  '...vvWWWKKKKKKKKKKKKKK..',
+  '...vWWWWKkkkkkkkkkkkkK..',
+  '...wvWWWKKKKKKKKKKKKKK..',
+  '....vWWvWvSSSSSSSSSSSS..',
+  '....vwWWsdsSSSSSSSSSSSS.',
+  '.....vwWsdSSSSSSSSSSSS..',
+  '......vvddSSSSSSSSSSSd..',
+  '.......vddSSSSSSSSSSm...',
+  '.........ddSSSSSSSSS....',
+  '.......nNNddSSSSSS......',
+  '......nNNNNNNNNNNNG.....',
+  '......nNNNNNNNNNNNg.....',
+];
+
+const GOJO_SIDE_BODY = [
+  '......nNNNNNNNNNNNNn....',
+  '......NNNMMMNNNNNNNn....',
+  '......NNNMMMNNNNNNNn....',
+  '......NNNnMMNNNNNNNn....',
+  '......NNNnMMNNNNNNNn....',
+  '......nNNnMMNNNNNNNn....',
+  '......nNNnMMNNNNNNNn....',
+  '......nNNNnMNNNNNNNn....',
+  '......nNNNSSNNNNNNNn....',
+  '......nNNNdSNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '.......nNNNNNNNNNNn.....',
+];
+
+// Coup de poing : le bras part droit devant, à hauteur d'épaule
+const GOJO_SIDE_PUNCH = [
+  '......nNNNNNNNNNNNNn....',
+  '......NNNNNNNNNNNMMMMMSS',
+  '......NNNNNNNNNNNNNNNNdS',
+  '......NNNNNNNNNNNNNn..dS',
+  '......NNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '......nNNNNNNNNNNNNn....',
+  '.......nNNNNNNNNNNn.....',
 ];
 
 const LEGS_FRONT = {
-  stand: ['....NNNNNNNN....', '....NNNn.NNN....', '....NNN..NNN....', '....nNN..NNn....', '....OOO..OOO....'],
-  a: ['....NNNNNNNN....', '....NNNn.NNN....', '....NNN..NNN....', '....OOO..NNn....', '.........OOO....'],
-  b: ['....NNNNNNNN....', '....NNNn.NNN....', '....NNN..NNN....', '....nNN..OOO....', '....OOO.........'],
+  stand: [
+    '.....nNNNNNNNNNNNNn.....',
+    '......NNNNNnnNNNNN......',
+    '......NNNNn..nNNNN......',
+    '......NNNNn..nNNNN......',
+    '......nNNNn..nNNNn......',
+    '.....OOOOoo..ooOOOO.....',
+  ],
+  a: [
+    '.....nNNNNNNNNNNNNn.....',
+    '......NNNNNnnNNNNN......',
+    '......NNNNn..nNNNN......',
+    '......nNNNn..nNNNN......',
+    '.....OOOOoo..nNNNn......',
+    '.............ooOOOO.....',
+  ],
 };
+LEGS_FRONT.b = LEGS_FRONT.a.map((r) => [...r].reverse().join(''));
 
 const LEGS_SIDE = {
-  stand: ['......NNNNN.....', '......NNNNN.....', '......NNNNN.....', '......nNNNn.....', '......OOOOOO....'],
-  a: ['......NNNNN.....', '.....NNN.NNN....', '....NNN...NNN...', '....nN.....Nn...', '...OOO.....OOO..'],
-  b: ['......NNNNN.....', '......NNNNN.....', '.....NNN.NN.....', '.....nN..Nn.....', '....OOO..OOO....'],
+  stand: [
+    '........nNNNNNNNNNn.....',
+    '.........NNNNNNNNN......',
+    '.........NNNNnNNNN......',
+    '.........NNNNnNNNN......',
+    '.........nNNNnNNNn......',
+    '.........OOOOOOOOOOo....',
+  ],
+  a: [
+    '........nNNNNNNNNNn.....',
+    '.......NNNNN..NNNNN.....',
+    '......NNNNn....nNNNN....',
+    '.....nNNNn......nNNNN...',
+    '.....nNNn........nNNNn..',
+    '...OOOOo.........OOOOOo.',
+  ],
+  b: [
+    '........nNNNNNNNNNn.....',
+    '.........NNNNNNNNN......',
+    '.........NNNNnNNNNN.....',
+    '........NNNNn..NNNNN....',
+    '........nNNn...nNNNn....',
+    '.......OOOOo...OOOOOo...',
+  ],
 };
 
 function spriteFromRows(rows, pal) {
@@ -141,18 +224,24 @@ function charredSprite(c) {
   return charredCache.get(c);
 }
 
+// Les sprites de Gojo sont ancrés au centre des pieds (dernière rangée)
+const GOJO_AX = 13;
+
 function buildGojo() {
   const pal = {};
   for (const k in GOJO_PAL) pal[k] = hexToRgb(GOJO_PAL[k]);
-  const mk = (top, legs) => spriteFromRows(top.concat(legs), pal);
-  const F = GOJO_FRONT, B = GOJO_BACK, S = GOJO_SIDE, LF = LEGS_FRONT, LS = LEGS_SIDE;
+  const mk = (rows) => spriteFromRows(rows, pal);
+  const F = GOJO_FRONT, B = GOJO_BACK, LF = LEGS_FRONT, LS = LEGS_SIDE;
+  const S = GOJO_SIDE_HEAD.concat(GOJO_SIDE_BODY), P = GOJO_SIDE_HEAD.concat(GOJO_SIDE_PUNCH);
   // [repos, marche 1..4]
   Gfx.gojo = {
-    down: [mk(F, LF.stand), mk(F, LF.a), mk(F, LF.stand), mk(F, LF.b), mk(F, LF.stand)],
-    up: [mk(B, LF.stand), mk(B, LF.a), mk(B, LF.stand), mk(B, LF.b), mk(B, LF.stand)],
-    right: [mk(S, LS.stand), mk(S, LS.a), mk(S, LS.b), mk(S, LS.a), mk(S, LS.b)],
+    down: [mk(F.concat(LF.stand)), mk(F.concat(LF.a)), mk(F.concat(LF.stand)), mk(F.concat(LF.b)), mk(F.concat(LF.stand))],
+    up: [mk(B.concat(LF.stand)), mk(B.concat(LF.a)), mk(B.concat(LF.stand)), mk(B.concat(LF.b)), mk(B.concat(LF.stand))],
+    right: [mk(S.concat(LS.stand)), mk(S.concat(LS.a)), mk(S.concat(LS.b)), mk(S.concat(LS.a)), mk(S.concat(LS.b))],
+    punchRight: mk(P.concat(LS.a)),
   };
   Gfx.gojo.left = Gfx.gojo.right.map(flipH);
+  Gfx.gojo.punchLeft = flipH(Gfx.gojo.punchRight);
 }
 
 // --- Tuiles ----------------------------------------------------------------
@@ -643,7 +732,88 @@ function buildBrute(r, phase) {
   return curseArt(p, 20, H - 4);
 }
 
+// --- Icônes des boutons ---------------------------------------------------------
+// Orbe en anneaux concentriques : cœur blanc puis trois teintes vers le bord
+function iconOrb(cols, R, deco) {
+  const p = new Pix(18, 18), c = toRgb(cols);
+  for (let y = 0; y < 18; y++) {
+    for (let x = 0; x < 18; x++) {
+      const d = Math.hypot(x - 8.5, y - 8.5) / R;
+      if (d > 1) continue;
+      p.set(x, y, c[d < 0.3 ? 0 : d < 0.55 ? 1 : d < 0.8 ? 2 : 3]);
+    }
+  }
+  p.set(6, 6, c[0]);
+  p.set(7, 5, c[0]);
+  if (deco) deco(p, c);
+  return p.outline(OUTLINE).canvas();
+}
+
+function iconRows(rows, pal) {
+  const rgb = {};
+  for (const k in pal) rgb[k] = hexToRgb(pal[k]);
+  return spriteFromRows(rows, rgb);
+}
+
+function buildIcons() {
+  Gfx.icons = {
+    // Bleu : orbe qui aspire, avec des débris en spirale
+    blue: iconOrb(['#ffffff', '#bfe4ff', '#5aa8ff', '#1d4fb8'], 6, (p, c) => {
+      for (const [x, y] of [[1, 6], [2, 3], [15, 11], [14, 14], [11, 1], [6, 16]]) p.set(x, y, c[1]);
+    }),
+    // Rouge : orbe qui repousse, avec des rayons
+    red: iconOrb(['#ffffff', '#ffd0a0', '#ff6a3a', '#b81d1d'], 5.5, (p, c) => {
+      for (let k = 0; k < 8; k++) {
+        const a = (k * Math.PI) / 4;
+        p.set(Math.round(8.5 + Math.cos(a) * 7.6), Math.round(8.5 + Math.sin(a) * 7.6), c[k & 1 ? 2 : 1]);
+      }
+    }),
+    // Violet : grande orbe crépitante
+    purple: iconOrb(['#ffffff', '#ead0ff', '#b06aff', '#5a1db8'], 7.8, (p) => {
+      for (const [x, y] of [[4, 11], [12, 4], [13, 12], [5, 4]]) p.set(x, y, [255, 255, 255]);
+    }),
+    dash: iconRows([
+      'C.....C......',
+      'CC....CC.....',
+      '.CC....CC....',
+      '..CC....CC...',
+      '...CW....CW..',
+      '....CW....CW.',
+      '...CW....CW..',
+      '..CC....CC...',
+      '.CC....CC....',
+      'CC....CC.....',
+      'C.....C......',
+    ], { C: '#8ee6ff', W: '#ffffff' }),
+    // Territoire : le symbole de l'infini
+    domain: iconRows([
+      '..WWWW....WWWW..',
+      '.WWbbWW..WWbbWW.',
+      'WWb..bWWWWb..bWW',
+      'WW....bWWb....WW',
+      'WWb..bWWWWb..bWW',
+      '.WWbbWW..WWbbWW.',
+      '..WWWW....WWWW..',
+    ], { W: '#ffffff', b: '#9fd4ff' }),
+    // Frappe : éclair du Black Flash
+    melee: iconRows([
+      '.......RRRR',
+      '......RWWR.',
+      '.....RWWR..',
+      '....RWWR...',
+      '...RWWRRRRR',
+      '..RRRRRWWR.',
+      '.....RWWR..',
+      '....RWWR...',
+      '...RWR.....',
+      '..RWR......',
+      '.RR........',
+    ], { R: '#ff2a3a', W: '#ffe0e4' }),
+  };
+}
+
 function buildGraphics() {
+  buildIcons();
   const r = mulberry32(1337);
   buildGojo();
   Gfx.tops = [];

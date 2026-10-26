@@ -21,6 +21,8 @@ correspondant ; s'il manque, le jeu garde son bruitage généré par le code.
 | `violet.mp3` | Tir du Violet |
 | `explosion.mp3` | Explosions (Rouge, fin du Bleu, fin du Violet) |
 | `teleportation.mp3` | Téléportation |
+| `frappe.mp3` | Coup de poing de la Frappe (joué à chaque coup du combo) |
+| `black_flash.mp3` | 5e coup du combo : Black Flash |
 | `extension_territoire.mp3` | Activation de la Sphère de l'Infini |
 | `infinite_bloque.mp3` | L'Infinité arrête un coup |
 | `gojo_touche.mp3` | Gojo perd des PV |

@@ -7,13 +7,14 @@ const Player = {
   kind: 'player', x: 0, y: 0, z: 0, dir: 'down', moving: false, animT: 0,
   speed: 5.5, castT: 0, charging: false, chargeT: 0, inf: 0, lastMx: 0.707, lastMy: 0.707,
   hp: 100, maxHp: 100, energy: 100, maxEnergy: 100, energyDelay: 0, hurtT: 0, sinceHurt: 99, inDomain: false,
+  punchT: 0, punchDir: 'right',
 };
 const INFINITY_R = 1.3;
 
 function resetPlayer() {
   Object.assign(Player, {
     x: MAP_W / 2 + 0.5, y: MAP_H / 2 + 0.5, dir: 'down', charging: false, chargeT: 0, castT: 0, inf: 0,
-    hp: Player.maxHp, energy: Player.maxEnergy, energyDelay: 0, hurtT: 0, sinceHurt: 99, inDomain: false,
+    hp: Player.maxHp, energy: Player.maxEnergy, energyDelay: 0, hurtT: 0, sinceHurt: 99, inDomain: false, punchT: 0,
   });
   Player.z = groundAt(Player.x, Player.y);
 }
@@ -73,6 +74,7 @@ function updatePlayer(dt, ux, uy) {
   const P = Player;
   P.castT = Math.max(0, P.castT - dt);
   P.hurtT = Math.max(0, P.hurtT - dt);
+  P.punchT = Math.max(0, P.punchT - dt);
   P.sinceHurt += dt;
   P.inDomain = Domain.state === 'active' && inDomain(P.x, P.y);
 

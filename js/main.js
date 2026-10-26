@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 const params = new URLSearchParams(location.search);
 const demo = params.has('demo');
-const Game = { started: false, over: false, paused: false, noEnergyT: 0 };
+const Game = { started: false, over: false, paused: false, noEnergyT: 0, hitStop: 0 };
 let last = 0;
 
 function newWorld(seed) {
@@ -19,7 +19,8 @@ function newWorld(seed) {
   resetPlayer();
   resetWaves();
   resetDomain();
-  Object.assign(CD, { blue: 0, red: 0, purple: 0, dash: 0 });
+  Object.assign(CD, { blue: 0, red: 0, purple: 0, dash: 0, melee: 0 });
+  Object.assign(Melee, { target: null, hits: 0, t: 99, queued: false });
   snapCamera();
 }
 
@@ -64,7 +65,7 @@ function togglePause() {
 }
 
 // --- Mode démo (?demo dans l'URL) : Gojo se balade et combat tout seul ------------
-const demoState = { t: 1.2, step: 0, release: -1, tx: 0, ty: 0 };
+const demoState = { t: 1.2, step: 0, release: -1, tx: 0, ty: 0, taps: 0 };
 function demoInput(dt) {
   const D = demoState;
   D.t += dt;
@@ -81,13 +82,19 @@ function demoInput(dt) {
     D.ty = best ? best.y : Player.y + Math.sin(a) * 6;
     Aim.x = D.tx;
     Aim.y = D.ty;
-    const s = D.step++ % 5;
-    if (s === 0 || s === 3) castBlue(D.tx, D.ty);
+    const s = D.step++ % 6;
+    if (s === 5) D.taps = COMBO_FINISH;
+    else if (s === 0 || s === 3) castBlue(D.tx, D.ty);
     else if (s === 2) {
       startPurple();
       D.release = 1.2;
     } else castRed(D.tx, D.ty);
     if (Domain.gauge >= 100 && curses.length >= 4) activateDomain();
+  }
+  // la Frappe : une rafale d'appuis rapides
+  if (D.taps > 0 && CD.melee <= 0) {
+    D.taps--;
+    melee();
   }
   if (D.release > 0) {
     D.release -= dt;
@@ -102,10 +109,16 @@ const hud = {};
 let bannerT = 0;
 
 function initHud() {
-  for (const k of ['blue', 'red', 'purple', 'dash']) {
+  for (const k of ['blue', 'red', 'purple', 'dash', 'melee']) {
     const el = document.querySelector(`.skill[data-k="${k}"]`);
     hud[k] = { el, cd: el.querySelector('.cd') };
   }
+  for (const el of document.querySelectorAll('.skill')) {
+    el.querySelector('.ico').style.backgroundImage = `url(${Gfx.icons[el.dataset.k].toDataURL()})`;
+  }
+  hud.combo = document.getElementById('combo');
+  hud.comboN = hud.combo.querySelector('b');
+  hud.comboShown = 0;
   hud.domain = document.querySelector('.skill[data-k="domain"]');
   hud.domainCd = hud.domain.querySelector('.cd');
   hud.charge = document.querySelector('.charge > i');
@@ -119,7 +132,7 @@ function initHud() {
 
 function updateHud() {
   for (const k in CD) {
-    const f = CD[k] / CD_MAX[k];
+    const f = Math.min(1, CD[k] / CD_MAX[k]);
     hud[k].cd.style.transform = `scaleY(${f})`;
     hud[k].el.classList.toggle('ready', f === 0);
   }
@@ -131,6 +144,17 @@ function updateHud() {
   hud.ce.style.width = (Player.energy / Player.maxEnergy) * 100 + '%';
   hud.ceBar.classList.toggle('empty', Game.noEnergyT > 0);
   hud.dom.style.width = Domain.gauge + '%';
+  // compteur de combo : il « saute » à chaque nouveau coup
+  const combo = Melee.t < COMBO_WINDOW && Melee.hits >= 2 ? Melee.hits : 0;
+  if (combo !== hud.comboShown) {
+    hud.comboShown = combo;
+    hud.combo.classList.remove('pop');
+    if (combo) {
+      hud.comboN.textContent = combo;
+      void hud.combo.offsetWidth;
+      hud.combo.classList.add('pop');
+    }
+  }
   const left = curses.length + Waves.queue.length;
   hud.wave.textContent = Waves.n
     ? `Vague ${Waves.n}   Fléaux ${left}   Exorcisés ${Waves.kills}`
@@ -167,6 +191,11 @@ function update(dt) {
   const portrait = innerHeight > innerWidth;
   if (!Game.started || Game.paused || Game.over || portrait) return;
 
+  // arrêt sur image d'une fraction de seconde quand un coup porte
+  if (Game.hitStop > 0) {
+    Game.hitStop -= dt;
+    return;
+  }
   const [ux, uy] = demo ? demoInput(dt) : [Touch.ux, Touch.uy];
   updateDomain(dt);
   updatePlayer(dt, ux, uy);

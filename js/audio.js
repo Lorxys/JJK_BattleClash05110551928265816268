@@ -12,6 +12,8 @@ const SOUND_FILES = {
   boom: 'explosion',
   domain: 'extension_territoire',
   whoosh: 'teleportation',
+  punch: 'frappe',
+  blackFlash: 'black_flash',
   hurt: 'gojo_touche',
   block: 'infinite_bloque',
   squish: 'fleau_mort',
@@ -195,6 +197,18 @@ const Sfx = {
   whoosh() {
     if (this.file('whoosh')) return;
     this.noiseBurst(0.25, 'bandpass', 800, 3000, 0.3, 2);
+  },
+  punch(finisher) {
+    if (finisher) {
+      if (this.file('blackFlash')) return;
+      this.noiseBurst(0.5, 'lowpass', 4000, 80, 0.8);
+      this.tone(0.4, 'square', 120, 40, 0.18);
+      this.noiseBurst(0.15, 'highpass', 6000, 2000, 0.3);
+      return;
+    }
+    if (!this.throttle('punch', 0.04) || this.file('punch')) return;
+    this.noiseBurst(0.12, 'lowpass', 2500, 200, 0.45);
+    this.tone(0.1, 'sine', 180, 60, 0.35);
   },
   fizzle() {
     if (!this.throttle('fizzle', 0.15) || this.file('fizzle')) return;

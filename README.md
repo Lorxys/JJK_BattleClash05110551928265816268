@@ -22,6 +22,7 @@ de tourner l'appareil.
 | Glisser depuis Bleu / Rouge | Viser dans la direction du glissement (le Bleu va plus loin si on glisse plus) |
 | Bleu + Rouge tenus ensemble, ou bouton Violet | Charger le **Violet**, relâcher pour tirer |
 | Rouge tiré dans un Bleu | **Violet** par fusion, depuis la position du Bleu |
+| **Frappe** (appuis répétés) | Téléportation sur le fléau le plus proche, qu'on paralyse à coups de poing ; le 5e coup est un **Black Flash** (黒閃) qui l'envoie voler |
 | Téléport | Téléportation vers le fléau le plus proche |
 | Territoire | Extension du territoire |
 | II | Pause |

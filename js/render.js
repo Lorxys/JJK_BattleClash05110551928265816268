@@ -60,6 +60,7 @@ function updateCamera(dt) {
 }
 
 function playerSprite() {
+  if (Player.punchT > 0) return Player.punchDir === 'left' ? Gfx.gojo.punchLeft : Gfx.gojo.punchRight;
   const fr = Gfx.gojo[Player.dir];
   return Player.moving ? fr[1 + (Math.floor(Player.animT * 9) % 4)] : fr[0];
 }
@@ -277,6 +278,19 @@ function drawCurse(ctx, c, cx, cy, W, Hh) {
   // un Colosse qui prépare son coup se tasse
   if (c.wind > 0) top += 2;
   ctx.drawImage(spr, sx - art.ax, top);
+  // paralysé : petites étoiles qui tournent au-dessus de la tête
+  if (c.stunT > 0) {
+    const t = performance.now() / 160;
+    for (let n = 0; n < 3; n++) {
+      const a = t + (n * Math.PI * 2) / 3, x = Math.round(sx + Math.cos(a) * 7), y = Math.round(top - 7 + Math.sin(a) * 2);
+      ctx.fillStyle = '#1a1426';
+      ctx.fillRect(x - 2, y - 1, 5, 3);
+      ctx.fillRect(x - 1, y - 2, 3, 5);
+      ctx.fillStyle = '#ffe08a';
+      ctx.fillRect(x - 1, y, 3, 1);
+      ctx.fillRect(x, y - 1, 1, 3);
+    }
+  }
   if (c.hp < c.max) {
     const w = c.type === 'brute' ? 24 : 12, y = top - 4;
     ctx.fillStyle = '#0b0b14';
@@ -292,17 +306,17 @@ function drawPlayer(ctx) {
   if (Player.hurtT > 0 && Math.floor(performance.now() / 60) % 2) return;
   const spr = playerSprite();
   const bob = Player.moving ? Math.floor(Player.animT * 9) % 2 : 0;
-  ctx.drawImage(spr, sx - 9, sy - 28 + bob);
+  ctx.drawImage(spr, sx - GOJO_AX, sy - (spr.height - 2) + bob);
 }
 
 // Infinité + charge du Violet, dessinés en lumière additive
 function drawPlayerAura(ctx) {
-  const sx = playerSX, sy = playerSY - 13;
+  const sx = playerSX, sy = playerSY - 18;
   if (Player.inf > 0.03) {
     ctx.strokeStyle = `rgba(160,215,255,${0.35 * Player.inf})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.ellipse(sx, sy, 22, 24 + Math.sin(performance.now() / 120), 0, 0, Math.PI * 2);
+    ctx.ellipse(sx, sy, 24, 28 + Math.sin(performance.now() / 120), 0, 0, Math.PI * 2);
     ctx.stroke();
   }
   if (Player.charging) {

@@ -20,7 +20,7 @@ function spawnCurse(type, x, y) {
   curses.push({
     kind: 'curse', type, x, y, z: groundAt(x, y) + def.float, vx: 0, vy: 0, vz: 0,
     air: false, held: false, hp: def.hp, max: def.hp, atkT: rnd(0.5, def.cd), wind: 0,
-    hitT: 0, frozen: false, t: Math.random() * 10, spawnT: 0.7, dead: false,
+    hitT: 0, frozen: false, stunT: 0, t: Math.random() * 10, spawnT: 0.7, dead: false,
   });
   for (let k = 0; k < 24; k++) {
     spawnSpark(x + rnd(-0.6, 0.6), y + rnd(-0.6, 0.6), groundAt(x, y), 0, 0, rnd(1, 4), pick(CURSE_SPARKS), rnd(0.4, 0.9), 2);
@@ -265,7 +265,7 @@ function updateCurses(dt) {
       }
     }
     const px = c.x - Player.x, py = c.y - Player.y, pd = Math.hypot(px, py);
-    if (pd > 0.01 && pd < INFINITY_R) {
+    if (pd > 0.01 && pd < INFINITY_R && !(c.stunT > 0)) {
       c.x += (px / pd) * (INFINITY_R - pd) * 0.3;
       c.y += (py / pd) * (INFINITY_R - pd) * 0.3;
     }
@@ -281,6 +281,12 @@ function updateCurses(dt) {
         c.spawnT = 0.7;
       }
       c.far = 0;
+      continue;
+    }
+    // paralysé par les coups de Gojo : il ne bouge plus et n'attaque plus
+    if (c.stunT > 0) {
+      c.stunT -= dt;
+      c.wind = 0;
       continue;
     }
     aiCurse(c, def, dt);

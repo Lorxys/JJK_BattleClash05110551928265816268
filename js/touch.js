@@ -71,6 +71,8 @@ function onButtonDown(e) {
   if (which === 'dash') {
     setAim(autoTarget());
     dash(Aim.x, Aim.y);
+  } else if (which === 'melee') {
+    melee();
   } else if (which === 'domain') {
     activateDomain();
   } else if (which === 'purple' || heldSpells().some((o) => o !== h && o.which !== which)) {
